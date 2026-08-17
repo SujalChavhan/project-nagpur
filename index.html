@@ -510,75 +510,59 @@
           
           <!-- TAB 1: CITIZEN AUTH PANE -->
           <div id="authPane-citizen">
-            <div style="margin-bottom: 20px; padding: 14px 18px; background: #eff6ff; border-radius: 12px; border: 1px solid #bfdbfe; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-              <div>
-                <strong style="color: #1e40af; font-size: 0.9rem;">⚡ 1-Click Quick Demo Login for Judges:</strong>
-                <p style="font-size: 0.8rem; color: #3b82f6; margin: 2px 0 0 0;">Log in in 1 tap with pre-filled verified citizen account</p>
-              </div>
-              <button type="button" class="btn btn-sm btn-primary btn-tactile" onclick="window.app.quickDemoLogin('citizen', 'Yash Rathod')">
-                🚀 1-Click Login (Citizen Yash)
-              </button>
-            </div>
-
             <form id="portalCitizenLoginForm">
               <div class="form-group">
-                <label class="form-label" style="font-weight: 700;">Citizen / Patient Name</label>
-                <input type="text" id="portalCitizenName" class="form-control" placeholder="e.g. Yash Rathod" required value="Yash Rathod">
+                <label class="form-label" style="font-weight: 700;">Full Name</label>
+                <input type="text" id="portalCitizenName" class="form-control" placeholder="Enter your name" required>
               </div>
               <div class="form-group">
-                <label class="form-label" style="font-weight: 700;">Mobile Number in Nagpur</label>
-                <input type="tel" id="portalCitizenPhone" class="form-control" placeholder="e.g. +91 98221 00112" required value="+91 98221 00112">
+                <label class="form-label" style="font-weight: 700;">Mobile Number</label>
+                <input type="tel" id="portalCitizenPhone" class="form-control" placeholder="Enter your mobile number" required>
               </div>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                 <div class="form-group">
-                  <label class="form-label" style="font-weight: 700;">Blood Group</label>
+                  <label class="form-label" style="font-weight: 700;">Location in Nagpur</label>
+                  <select id="portalCitizenLocality" class="form-control" required>
+                    <option value="" disabled selected>Enter your location</option>
+                    <option value="Dharampeth">Dharampeth, Nagpur</option>
+                    <option value="Sitabuldi">Sitabuldi, Nagpur</option>
+                    <option value="Civil Lines">Civil Lines, Nagpur</option>
+                    <option value="Ramdaspeth">Ramdaspeth, Nagpur</option>
+                    <option value="Dhantoli">Dhantoli, Nagpur</option>
+                    <option value="Wardha Road">Wardha Road, Nagpur</option>
+                    <option value="Sadar">Sadar, Nagpur</option>
+                    <option value="Khamla">Khamla, Nagpur</option>
+                    <option value="Trimurti Nagar">Trimurti Nagar, Nagpur</option>
+                    <option value="Manish Nagar">Manish Nagar, Nagpur</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-weight: 700;">Blood Group (Optional)</label>
                   <select id="portalCitizenBlood" class="form-control">
                     <option value="O+" selected>O+ (Positive)</option>
                     <option value="A+">A+ (Positive)</option>
                     <option value="B+">B+ (Positive)</option>
                     <option value="AB+">AB+ (Positive)</option>
                     <option value="O-">O- (Universal)</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label" style="font-weight: 700;">Locality in Nagpur</label>
-                  <select id="portalCitizenLocality" class="form-control">
-                    <option value="Sitabuldi" selected>Sitabuldi</option>
-                    <option value="Dharampeth">Dharampeth</option>
-                    <option value="Ramdaspeth">Ramdaspeth</option>
-                    <option value="Dhantoli">Dhantoli</option>
-                    <option value="Wardha Road">Wardha Road</option>
-                    <option value="Civil Lines">Civil Lines</option>
+                    <option value="A-">A- (Negative)</option>
+                    <option value="B-">B- (Negative)</option>
+                    <option value="AB-">AB- (Negative)</option>
                   </select>
                 </div>
               </div>
               <button type="submit" class="btn btn-lg btn-primary btn-tactile" style="width: 100%; font-weight: 800; margin-top: 12px;">
-                👤 Enter Citizen Emergency Portal
+                👤 Sign In to Citizen Portal
               </button>
             </form>
           </div>
 
           <!-- TAB 2: HOSPITAL AUTH PANE -->
           <div id="authPane-hospital" style="display: none;">
-            <div style="margin-bottom: 20px; padding: 14px 18px; background: #fff1f2; border-radius: 12px; border: 1px solid #fecdd3;">
-              <strong style="color: #9f1239; font-size: 0.9rem; display: block; margin-bottom: 8px;">⚡ 1-Click Quick Demo Login for Hospitals:</strong>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-sm btn-critical btn-tactile" onclick="window.app.quickDemoLogin('hospital', 'NCEH001')">
-                  🏥 Nagpur Central (NCEH001)
-                </button>
-                <button type="button" class="btn btn-sm btn-secondary btn-tactile" onclick="window.app.quickDemoLogin('hospital', 'OCMC002')">
-                  🏥 Orange City (OCMC002)
-                </button>
-                <button type="button" class="btn btn-sm btn-secondary btn-tactile" onclick="window.app.quickDemoLogin('hospital', 'CIEC003')">
-                  🏥 Central India (CIEC003)
-                </button>
-              </div>
-            </div>
-
             <form id="portalHospitalLoginForm">
               <div class="form-group">
-                <label class="form-label" style="font-weight: 700;">Select Partner Hospital</label>
-                <select id="portalHospitalSelect" class="form-control" style="font-size: 1rem; font-weight: 600;">
+                <label class="form-label" style="font-weight: 700;">Select Hospital EOC</label>
+                <select id="portalHospitalSelect" class="form-control" style="font-size: 0.95rem; font-weight: 600;" required>
+                  <option value="" disabled selected>Select Hospital Emergency Command</option>
                   <option value="NCEH001">Nagpur Central Emergency Hospital (Civil Lines / Central Nagpur)</option>
                   <option value="OCMC002">Orange City Medical Center (Khamla / Ring Road)</option>
                   <option value="CIEC003">Central India Emergency Care (Wardha Road / MIHAN)</option>
@@ -586,34 +570,24 @@
               </div>
               <div class="form-group">
                 <label class="form-label" style="font-weight: 700;">Staff Access Code / Password</label>
-                <input type="password" id="portalHospitalPassword" class="form-control" value="hospital123" required>
+                <input type="password" id="portalHospitalPassword" class="form-control" placeholder="Enter staff access code (e.g. hospital123)" required>
               </div>
               <button type="submit" class="btn btn-lg btn-critical btn-tactile" style="width: 100%; font-weight: 800; margin-top: 12px;">
-                🏥 Enter Hospital Command Center (EOC)
+                🏥 Sign In to Hospital Command Center (EOC)
               </button>
             </form>
           </div>
 
           <!-- TAB 3: ADMIN AUTH PANE -->
           <div id="authPane-admin" style="display: none;">
-            <div style="margin-bottom: 20px; padding: 14px 18px; background: #ecfdf5; border-radius: 12px; border: 1px solid #a7f3d0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-              <div>
-                <strong style="color: #065f46; font-size: 0.9rem;">⚡ 1-Click Platform Owner Login:</strong>
-                <p style="font-size: 0.8rem; color: #047857; margin: 2px 0 0 0;">Pre-fills master administrator credentials</p>
-              </div>
-              <button type="button" class="btn btn-sm btn-success btn-tactile" onclick="window.app.quickDemoLogin('admin', null)">
-                🔐 1-Click Master Admin
-              </button>
-            </div>
-
             <form id="portalAdminLoginForm">
               <div class="form-group">
                 <label class="form-label" style="font-weight: 700;">Master Admin Username</label>
-                <input type="text" id="portalAdminUsername" class="form-control" value="admin" required>
+                <input type="text" id="portalAdminUsername" class="form-control" placeholder="Enter admin username" required>
               </div>
               <div class="form-group">
                 <label class="form-label" style="font-weight: 700;">Master Security Password</label>
-                <input type="password" id="portalAdminPassword" class="form-control" value="admin123" required>
+                <input type="password" id="portalAdminPassword" class="form-control" placeholder="Enter master security password" required>
               </div>
               <button type="submit" class="btn btn-lg btn-success btn-tactile" style="width: 100%; font-weight: 800; margin-top: 12px;">
                 🔐 Access Master Control Center

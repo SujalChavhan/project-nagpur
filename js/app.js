@@ -194,6 +194,29 @@ class MedConnectApp {
       this.renderHospitalEOC();
       this.renderHospitalAlertBanner();
       this.renderHeroStats();
+      this.renderLandingHospitalCapacityTable();
+    });
+
+    window.medStore.subscribe('PATIENT_DIVERTED', (payload) => {
+      this.renderAmbulanceTracking();
+      this.renderHospitalEOC();
+      this.renderCitizenDashboard();
+      this.renderHeroStats();
+      this.renderLandingHospitalCapacityTable();
+      if (window.nagpurMap) window.nagpurMap.updateEmergencyRoute();
+    });
+
+    window.medStore.subscribe('ALERT_15M_ACCEPTED', (payload) => {
+      this.renderHospitalEOC();
+      this.renderHospitalAlertBanner();
+      this.renderAmbulanceTracking();
+      this.renderCitizenDashboard();
+      this.renderLandingHospitalCapacityTable();
+    });
+
+    window.medStore.subscribe('HOSPITAL_SETTINGS_UPDATED', () => {
+      this.renderHospitalEOC();
+      this.renderLandingHospitalCapacityTable();
     });
 
     // 1-Second Real-Time Countdown Tick

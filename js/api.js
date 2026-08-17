@@ -121,7 +121,9 @@ class MedConnectAPI {
         'ALERT_ACCEPTED',
         'PATIENT_ADMITTED',
         'PATIENT_DISCHARGED',
+        'PATIENT_DIVERTED',
         'HOSPITAL_INVENTORY_UPDATED',
+        'HOSPITAL_SETTINGS_UPDATED',
         'DONOR_REGISTERED',
         'DONOR_CONTACTED',
         'BLOOD_REQ_CREATED'
@@ -138,11 +140,21 @@ class MedConnectAPI {
         });
       });
 
+      this.eventSource.onmessage = (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          const type = parsed.type || 'MESSAGE';
+          if (callback) callback(type, parsed.data || parsed);
+        } catch (err) {
+          // ignore pings
+        }
+      };
+
       this.eventSource.onerror = (err) => {
-        console.warn('[SSE Stream Disconnected - reconnecting in 3s...]');
+        console.warn('[SSE Stream Disconnected - reconnecting in 2s...]');
         this.isBackendOnline = false;
-        this.eventSource.close();
-        setTimeout(() => this.startEventStream(callback), 3000);
+        try { this.eventSource.close(); } catch (e) {}
+        setTimeout(() => this.startEventStream(callback), 2000);
       };
     } catch (e) {
       console.warn('[SSE Initialization failed]:', e);

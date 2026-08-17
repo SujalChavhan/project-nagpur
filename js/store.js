@@ -231,11 +231,11 @@ class MedConnectStore {
     // 2. Initial backend load
     this.syncWithBackend();
 
-    // 3. Fallback 2.5-second polling loop for guaranteed cross-device reliability
+    // 3. Fallback 1.5-second rapid polling loop for guaranteed cross-device real-time sync
     if (this.syncInterval) clearInterval(this.syncInterval);
     this.syncInterval = setInterval(() => {
       this.syncWithBackend();
-    }, 2500);
+    }, 1500);
   }
 
   // Real-time Event Handler (Instant reactive reaction across all devices)
@@ -355,6 +355,7 @@ class MedConnectStore {
           const active = syncRes.ambulanceRequests.find(r => r.status !== 'DISCHARGED' && r.status !== 'COMPLETED') || syncRes.ambulanceRequests[0];
           if (active) {
             this.formatAndSetActiveEmergency(active);
+            this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
           }
         }
 

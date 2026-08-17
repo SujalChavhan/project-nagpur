@@ -26,22 +26,30 @@ app.use(express.static(path.join(__dirname), {
 let sseClients = [];
 
 function broadcastEvent(eventType, payload) {
-  const message = `event: ${eventType}\ndata: ${JSON.stringify({ type: eventType, data: payload, timestamp: Date.now() })}\n\n`;
-  sseClients.forEach((client, idx) => {
+  const dataString = JSON.stringify({ type: eventType, data: payload, timestamp: Date.now() });
+  const namedEventMsg = `event: ${eventType}\ndata: ${dataString}\n\n`;
+  const genericMsg = `data: ${dataString}\n\n`;
+  
+  const activeClients = [];
+  sseClients.forEach((client) => {
     try {
-      client.res.write(message);
+      client.res.write(namedEventMsg);
+      client.res.write(genericMsg);
+      activeClients.push(client);
     } catch (err) {
-      sseClients.splice(idx, 1);
+      // client disconnected
     }
   });
+  sseClients = activeClients;
 }
 
 // SSE Connection Endpoint
 app.get('/api/events', (req, res) => {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
+    'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
     'Access-Control-Allow-Origin': '*'
   });
 
@@ -52,14 +60,14 @@ app.get('/api/events', (req, res) => {
   // Send initial handshake
   res.write(`event: connected\ndata: ${JSON.stringify({ clientId, timestamp: Date.now() })}\n\n`);
 
-  // Heartbeat ping every 15s to keep mobile connection alive
+  // Heartbeat ping every 10s to keep mobile connection alive
   const pingInterval = setInterval(() => {
     try {
       res.write(`: ping\n\n`);
     } catch (e) {
       clearInterval(pingInterval);
     }
-  }, 15000);
+  }, 10000);
 
   req.on('close', () => {
     clearInterval(pingInterval);
