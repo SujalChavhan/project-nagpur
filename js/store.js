@@ -192,6 +192,7 @@ class MedConnectStore {
   loadInitialState() {
     try {
       const saved = localStorage.getItem(this.storageKey);
+      const token = localStorage.getItem('zero_mile_jwt_token');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (!parsed.activeEmergency) {
@@ -199,6 +200,10 @@ class MedConnectStore {
         }
         if (!parsed.hospitals) {
           parsed.hospitals = this.getDefaultState().hospitals;
+        }
+        // Force guest if no valid token in localStorage
+        if (!token) {
+          parsed.session = this.getDefaultState().session;
         }
         return parsed;
       }
@@ -240,14 +245,44 @@ class MedConnectStore {
 
   // Real-time Event Handler (Instant reactive reaction across all devices)
   handleServerEvent(evtType, payload) {
-    console.log(`[RealTime Event] ${evtType}:`, payload);
+    console.log('SSE Event Received:', { type: evtType, payload });
+
+    if (evtType === 'connected') {
+      this.syncWithBackend();
+      return;
+    }
 
     if (evtType === 'EMERGENCY_CREATED') {
       if (payload.hospitals) {
         this.state.hospitals = payload.hospitals;
+      } else if (payload.hospital) {
+        this.state.hospitals[payload.hospital.id] = payload.hospital;
       }
       if (payload.emergency) {
         this.formatAndSetActiveEmergency(payload.emergency);
+        const targetHospId = payload.emergency.hospitalId || (payload.hospital && payload.hospital.id) || 'NCEH001';
+        if (this.state.hospitals && this.state.hospitals[targetHospId]) {
+          const hosp = this.state.hospitals[targetHospId];
+          if (!hosp.inboundQueue) hosp.inboundQueue = [];
+          const exists = hosp.inboundQueue.some(p => p.id === payload.emergency.id);
+          if (!exists) {
+            hosp.inboundQueue.unshift({
+              id: payload.emergency.id,
+              patientName: payload.emergency.patientName || 'Emergency Patient',
+              age: payload.emergency.age || 40,
+              condition: payload.emergency.condition || 'Accident / Trauma',
+              severity: payload.emergency.severity || 'CRITICAL',
+              ambulanceCode: payload.emergency.ambulanceCode || 'ZM-1024',
+              etaMinutes: payload.emergency.etaMinutes || 14,
+              etaSeconds: payload.emergency.etaSeconds || 892,
+              assignedDoctor: 'Dr. S. Deshmukh',
+              bedStatus: 'ICU / Trauma Unit Reserved',
+              isAlert15m: true,
+              accepted: false,
+              status: 'INCOMING'
+            });
+          }
+        }
       }
       this.saveState();
       this.notify('EMERGENCY_CREATED', payload);
@@ -574,40 +609,50 @@ class MedConnectStore {
     if (citizenData.bloodGroup) this.state.session.citizen.bloodGroup = citizenData.bloodGroup;
     if (citizenData.id) this.state.session.citizen.id = citizenData.id;
 
-    this.saveState();
-    this.notify('SESSION_CHANGED', this.state.session);
-
-    if (window.medApi && citizenData.phone) {
+    if (window.medApi) {
       try {
-        const res = await window.medApi.login(citizenData.phone, citizenData.password || 'citizen123', 'citizen');
+        const phone = citizenData.phone || citizenData.name || '+91 98221 00112';
+        const res = await window.medApi.login(phone, citizenData.password || 'citizen123', 'citizen');
         if (res && res.user) {
           this.state.session.citizen.id = res.user.id;
           this.state.session.citizen.name = res.user.name;
           this.state.session.citizen.isRegisteredDonor = res.user.isRegisteredDonor || false;
-          this.saveState();
-          this.notify('SESSION_CHANGED', this.state.session);
+          if (res.token) this.state.session.token = res.token;
         }
       } catch (err) {
         console.warn('Backend login fallback used');
       }
     }
+
+    this.saveState();
+    this.notify('SESSION_CHANGED', this.state.session);
+    return { success: true, user: this.state.session.citizen };
   }
 
   async loginAsHospital(hospitalId = 'NCEH001', password = 'hospital123') {
     this.state.session.role = 'hospital';
     this.state.session.activeHospitalId = hospitalId;
-    this.saveState();
-    this.notify('SESSION_CHANGED', this.state.session);
-    this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
 
     if (window.medApi) {
       try {
-        await window.medApi.login(hospitalId, password, 'hospital');
+        const res = await window.medApi.login(hospitalId, password, 'hospital');
+        if (res && res.token) {
+          this.state.session.token = res.token;
+        }
       } catch (e) {
         console.warn('Backend hospital login fallback used');
       }
     }
-    return true;
+
+    this.saveState();
+    this.notify('SESSION_CHANGED', this.state.session);
+    this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+
+    // Ensure real-time SSE stream is initialized and fresh state is fetched immediately
+    this.initRealTimeSync();
+    await this.syncWithBackend();
+
+    return { success: true, hospitalId };
   }
 
   async loginAsAdmin(username = 'admin', password = 'admin123') {
@@ -616,6 +661,7 @@ class MedConnectStore {
         const res = await window.medApi.login(username, password, 'admin');
         if (res && res.success) {
           this.state.session.role = 'admin';
+          this.state.session.token = res.token;
           this.state.session.admin = {
             id: res.user.id,
             name: res.user.name,
@@ -655,12 +701,21 @@ class MedConnectStore {
     return this.state.adminData;
   }
 
-  logout() {
-    this.state.session.role = 'guest';
+  logout(redirect = true) {
+    this.state.session = this.getDefaultState().session;
     this.state.adminData = null;
     if (window.medApi) window.medApi.logout();
+    try {
+      localStorage.removeItem(this.storageKey);
+      localStorage.removeItem('zero_mile_jwt_token');
+      localStorage.removeItem('zero_mile_medconnect_session');
+    } catch (e) {}
     this.saveState();
     this.notify('SESSION_CHANGED', this.state.session);
+
+    if (redirect && window.app) {
+      window.app.switchView('login');
+    }
   }
 
   getCurrentRole() {

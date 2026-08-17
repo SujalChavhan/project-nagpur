@@ -81,6 +81,17 @@ class MedConnectAPI {
       clearTimeout(timeoutId);
       this.isBackendOnline = true;
 
+      if (response.status === 401) {
+        console.warn('[API 401 Unauthorized]: Token expired or invalid.');
+        this.setToken(null);
+        if (window.medStore) {
+          window.medStore.logout(false);
+        }
+        if (window.app) {
+          window.app.switchView('login');
+        }
+      }
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.message || `Request failed with status ${response.status}`);
@@ -88,7 +99,9 @@ class MedConnectAPI {
       return data;
     } catch (err) {
       clearTimeout(timeoutId);
-      this.isBackendOnline = false;
+      if (err.name !== 'AbortError' && !err.message.includes('401')) {
+        this.isBackendOnline = false;
+      }
       throw err;
     }
   }
@@ -101,7 +114,7 @@ class MedConnectAPI {
     if (typeof EventSource === 'undefined') return;
 
     if (this.eventSource) {
-      this.eventSource.close();
+      try { this.eventSource.close(); } catch (e) {}
     }
 
     const sseUrl = `${this.baseUrl}/api/events`;
@@ -109,9 +122,14 @@ class MedConnectAPI {
     try {
       this.eventSource = new EventSource(sseUrl);
 
-      this.eventSource.onopen = () => {
+      this.eventSource.onopen = (event) => {
         this.isBackendOnline = true;
         console.log('[SSE] Real-time stream connected to backend:', sseUrl);
+        // Automatically sync state upon connection / reconnection so client is never out of sync
+        if (window.medStore && typeof window.medStore.syncWithBackend === 'function') {
+          window.medStore.syncWithBackend();
+        }
+        if (callback) callback('connected', { timestamp: Date.now() });
       };
 
       const eventTypes = [
@@ -130,9 +148,10 @@ class MedConnectAPI {
       ];
 
       eventTypes.forEach(evtType => {
-        this.eventSource.addEventListener(evtType, (e) => {
+        this.eventSource.addEventListener(evtType, (event) => {
+          console.log('SSE Event Received:', event);
           try {
-            const parsed = JSON.parse(e.data);
+            const parsed = JSON.parse(event.data);
             if (callback) callback(evtType, parsed.data || parsed);
           } catch (err) {
             console.warn('[SSE Parse Error]:', err);
@@ -140,11 +159,14 @@ class MedConnectAPI {
         });
       });
 
-      this.eventSource.onmessage = (e) => {
+      this.eventSource.onmessage = (event) => {
+        console.log('SSE Event Received:', event);
         try {
-          const parsed = JSON.parse(e.data);
+          const parsed = JSON.parse(event.data);
           const type = parsed.type || 'MESSAGE';
-          if (callback) callback(type, parsed.data || parsed);
+          if (callback && !eventTypes.includes(type)) {
+            callback(type, parsed.data || parsed);
+          }
         } catch (err) {
           // ignore pings
         }
@@ -154,7 +176,13 @@ class MedConnectAPI {
         console.warn('[SSE Stream Disconnected - reconnecting in 2s...]');
         this.isBackendOnline = false;
         try { this.eventSource.close(); } catch (e) {}
-        setTimeout(() => this.startEventStream(callback), 2000);
+        this.eventSource = null;
+        setTimeout(() => {
+          this.startEventStream(callback);
+          if (window.medStore && typeof window.medStore.syncWithBackend === 'function') {
+            window.medStore.syncWithBackend();
+          }
+        }, 2000);
       };
     } catch (e) {
       console.warn('[SSE Initialization failed]:', e);

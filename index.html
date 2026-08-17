@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/design-system.css">
   <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/raju.css">
 
   <!-- Leaflet Map CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -637,6 +638,28 @@
 
       <!-- Active Emergency Status Widget -->
       <div id="citizenActiveEmgCard" style="margin-bottom: var(--space-6);"></div>
+
+      <!-- Dr. Raju AI Health Assistant Banner in Citizen View -->
+      <div class="card card-elevated" style="padding: var(--space-5) var(--space-6); margin-bottom: var(--space-6); background: linear-gradient(135deg, #0b1329 0%, #1e293b 70%, #0369a1 100%); color: #ffffff; border: 1.5px solid rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #0284c7, #06b6d4); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4); position: relative;">
+            <span>🩺</span>
+            <span class="live-dot-green" style="position: absolute; bottom: 2px; right: 2px; border: 2px solid #0f172a;"></span>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 style="font-size: 1.15rem; color: #ffffff; margin: 0; font-weight: 800;">Dr. Raju (AI Health Assistant)</h3>
+              <span class="raju-ai-badge">Instant Triage</span>
+            </div>
+            <p style="font-size: 0.82rem; color: #94a3b8; margin: 2px 0 0 0;">
+              Check symptoms in <strong>Hindi, English & Hinglish</strong>, get first-aid protocols, or speak via microphone.
+            </p>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-tactile" onclick="window.rajuAssistant.toggleChat(true)" style="font-weight: 800; font-size: 0.85rem; padding: 10px 18px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #2563eb); border: none; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);">
+          💬 Open Dr. Raju (AI Health Assistant) 🎙️
+        </button>
+      </div>
 
       <!-- Citizen Quick Action Grid -->
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-8);">
@@ -2051,6 +2074,7 @@
   <script src="js/api.js"></script>
   <script src="js/store.js"></script>
   <script src="js/map.js"></script>
+  <script src="js/raju-assistant.js"></script>
   <script src="js/app.js"></script>
 
 </body>

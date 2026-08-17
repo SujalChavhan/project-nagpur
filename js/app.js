@@ -16,7 +16,7 @@ class MedConnectApp {
   }
 
   init() {
-    console.log("Initializing Zero-Mile MedConnect (Authentication-First Gateway)...");
+    console.log("Initializing Zero-Mile MedConnect (Clean Architecture)...");
 
     // Setup Navigation & Portal Switchers
     this.setupNavigation();
@@ -30,11 +30,12 @@ class MedConnectApp {
     // Setup Live Continuous Telemetry & Canvas ECG
     this.startContinuousTelemetry();
 
-    // Authentication-First Check: If authenticated, open user's dashboard; otherwise open Authentication Gateway
+    // Initial View Selection based on Active Session
     const currentRole = window.medStore.getCurrentRole();
     if (currentRole === 'citizen') {
       this.switchView('citizen');
     } else if (currentRole === 'hospital') {
+      this.initHospitalSSE();
       this.switchView('hospital');
     } else if (currentRole === 'admin') {
       this.switchView('admin');
@@ -54,6 +55,11 @@ class MedConnectApp {
 
     // Initialize Analytics
     this.initAnalyticsCharts();
+
+    // Initialize Dr. Raju AI Health Assistant
+    if (window.rajuAssistant) {
+      window.rajuAssistant.init();
+    }
   }
 
   // --- Navigation & View Switching ---
@@ -80,9 +86,10 @@ class MedConnectApp {
     // Hospital switcher in EOC header
     const hospSelect = document.getElementById('eocHospitalSwitcher');
     if (hospSelect) {
-      hospSelect.addEventListener('change', (e) => {
+      hospSelect.addEventListener('change', async (e) => {
         const newHospId = e.target.value;
-        window.medStore.loginAsHospital(newHospId);
+        await window.medStore.loginAsHospital(newHospId);
+        this.initHospitalSSE();
         this.showToast(`Switched to ${window.medStore.getCurrentHospitalData().name} (${newHospId})`, "primary");
       });
     }
@@ -113,6 +120,16 @@ class MedConnectApp {
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    // Dr. Raju AI Assistant: Exclusively active in Citizen environment!
+    if (window.rajuAssistant) {
+      const role = window.medStore ? window.medStore.getCurrentRole() : 'guest';
+      if (viewName === 'citizen' || (role === 'citizen' && (viewName === 'ambulance' || viewName === 'blood' || viewName === 'hospital-match'))) {
+        window.rajuAssistant.show();
+      } else {
+        window.rajuAssistant.hide();
+      }
+    }
+
     // Handle view-specific renders
     if (viewName === 'ambulance') {
       setTimeout(() => {
@@ -127,9 +144,25 @@ class MedConnectApp {
       }, 150);
     } else if (viewName === 'admin') {
       window.medStore.refreshAdminDashboard();
+    } else if (viewName === 'hospital') {
+      this.initHospitalSSE();
+      this.renderHospitalEOC();
     }
 
     this.renderAll();
+  }
+
+  // --- Real-time Hospital EOC SSE Engine ---
+  initHospitalSSE() {
+    console.log('[Hospital EOC] Initializing SSE EventSource stream & synchronizing state...');
+    if (window.medStore) {
+      window.medStore.initRealTimeSync();
+      window.medStore.syncWithBackend().then(() => {
+        this.renderHospitalEOC();
+      }).catch(err => {
+        console.warn('[Hospital EOC Sync Note]:', err.message);
+      });
+    }
   }
 
   // --- Store Subscriptions ---
@@ -138,6 +171,9 @@ class MedConnectApp {
       this.renderNavSession();
       this.renderCitizenDashboard();
       this.renderHospitalEOC();
+      if (session.role === 'hospital') {
+        this.initHospitalSSE();
+      }
       if (session.role === 'admin') {
         this.renderAdminDashboard();
       }
@@ -158,9 +194,12 @@ class MedConnectApp {
 
     // Real-Time Cross-Device New Emergency Alert
     window.medStore.subscribe('EMERGENCY_CREATED', (payload) => {
+      console.log('SSE Event Received:', payload);
+
+      // Force immediate real-time DOM updates on Hospital EOC dashboard & inbound queue
+      this.renderHospitalEOC();
       this.renderAmbulanceTracking();
       this.renderHospitalAlertBanner();
-      this.renderHospitalEOC();
       this.renderCitizenDashboard();
       this.renderHeroStats();
       if (window.nagpurMap) window.nagpurMap.updateEmergencyRoute();
@@ -1388,15 +1427,16 @@ class MedConnectApp {
     // 3. Hospital Login Form
     const hospitalLoginForm = document.getElementById('hospitalLoginForm');
     if (hospitalLoginForm) {
-      hospitalLoginForm.addEventListener('submit', (e) => {
+      hospitalLoginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const hospId = document.getElementById('loginHospitalId').value;
         const pass = document.getElementById('loginHospitalPassword') ? document.getElementById('loginHospitalPassword').value : 'hospital123';
-        const success = window.medStore.loginAsHospital(hospId, pass);
+        const success = await window.medStore.loginAsHospital(hospId, pass);
         if (success) {
+          this.initHospitalSSE();
           this.closeAllModals();
           const hosp = window.medStore.getCurrentHospitalData();
-          this.showToast(`🏥 Logged into ${hosp.name} (${hospId}) Command Center`, "success");
+          this.showToast(`🏥 Logged into ${hosp ? hosp.name : hospId} Command Center`, "success");
           this.switchView('hospital');
         } else {
           this.showToast("Invalid Hospital ID", "critical");
@@ -1497,15 +1537,16 @@ class MedConnectApp {
     }
 
     // 10. Portal Dedicated Login Forms (Citizen, Hospital, Admin)
+    // 10. Portal Dedicated Login Forms (Citizen, Hospital, Admin)
     const portalCitizenForm = document.getElementById('portalCitizenLoginForm');
     if (portalCitizenForm) {
-      portalCitizenForm.addEventListener('submit', (e) => {
+      portalCitizenForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('portalCitizenName').value.trim();
         const phone = document.getElementById('portalCitizenPhone').value.trim();
         const bloodGroup = document.getElementById('portalCitizenBlood').value;
         const locality = document.getElementById('portalCitizenLocality').value;
-        window.medStore.loginAsCitizen({ name, phone, bloodGroup, locality });
+        await window.medStore.loginAsCitizen({ name, phone, bloodGroup, locality });
         this.showToast(`Welcome ${name}! Citizen portal active.`, 'success');
         if (window.medAudio) window.medAudio.playSuccessChime();
         this.switchView('citizen');
@@ -1514,11 +1555,12 @@ class MedConnectApp {
 
     const portalHospitalForm = document.getElementById('portalHospitalLoginForm');
     if (portalHospitalForm) {
-      portalHospitalForm.addEventListener('submit', (e) => {
+      portalHospitalForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const hospId = document.getElementById('portalHospitalSelect').value;
         const pass = document.getElementById('portalHospitalPassword').value;
-        window.medStore.loginAsHospital(hospId, pass);
+        await window.medStore.loginAsHospital(hospId, pass);
+        this.initHospitalSSE();
         const hosp = window.medStore.getCurrentHospitalData();
         this.showToast(`🏥 Logged into ${hosp ? hosp.name : hospId} Command Center`, 'success');
         if (window.medAudio) window.medAudio.playSuccessChime();
@@ -1592,7 +1634,7 @@ class MedConnectApp {
   async quickDemoLogin(role, targetId) {
     if (role === 'citizen') {
       const name = targetId || 'Yash Rathod';
-      window.medStore.loginAsCitizen({
+      await window.medStore.loginAsCitizen({
         name,
         phone: '+91 98221 00112',
         locality: 'Sitabuldi',
@@ -1603,13 +1645,14 @@ class MedConnectApp {
       this.switchView('citizen');
     } else if (role === 'hospital') {
       const hospId = targetId || 'NCEH001';
-      window.medStore.loginAsHospital(hospId, 'hospital123');
+      await window.medStore.loginAsHospital(hospId, 'hospital123');
+      this.initHospitalSSE();
       const hosp = window.medStore.getCurrentHospitalData();
       this.showToast(`Logged into ${hosp ? hosp.name : hospId} Emergency EOC!`, 'primary');
       if (window.medAudio) window.medAudio.playSuccessChime();
       this.switchView('hospital');
     } else if (role === 'admin') {
-      window.medStore.loginAsAdmin('admin', 'admin123');
+      await window.medStore.loginAsAdmin('admin', 'admin123');
       this.showToast('Authenticated as Platform Master Admin', 'success');
       if (window.medAudio) window.medAudio.playSuccessChime();
       this.switchView('admin');

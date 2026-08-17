@@ -1,6 +1,48 @@
 {
   "users": [
     {
+      "id": "usr-1787001500522-561",
+      "name": "+91 98221 00112",
+      "username": "+91 98221 00112",
+      "email": "",
+      "phone": "+91 98221 00112",
+      "passwordHash": "$2a$10$Z3G7RWOZpR0rCxidggFTG.7NFCTbQYrzfFigWbJ62ZysPFTFePh9O",
+      "role": "citizen",
+      "bloodGroup": "O+",
+      "locality": "Dharampeth, Nagpur",
+      "isRegisteredDonor": false,
+      "createdAt": "2026-08-17T21:18:20.522Z",
+      "lastLogin": "2026-08-17T21:32:47.443Z"
+    },
+    {
+      "id": "usr-1786993648651-430",
+      "name": "53470753455",
+      "username": "53470753455",
+      "email": "",
+      "phone": "53470753455",
+      "passwordHash": "$2a$10$BcN6dzLlMMbPOpD43LQyGux4uJjhwbxPS7qpn8dOuuT0lRaF0jMn6",
+      "role": "citizen",
+      "bloodGroup": "O+",
+      "locality": "Dharampeth, Nagpur",
+      "isRegisteredDonor": true,
+      "createdAt": "2026-08-17T19:07:28.651Z",
+      "lastLogin": "2026-08-17T19:07:28.757Z"
+    },
+    {
+      "id": "usr-1786993434655-528",
+      "name": "919285725",
+      "username": "919285725",
+      "email": "",
+      "phone": "919285725",
+      "passwordHash": "$2a$10$eaH3g2Z/Dxo44rbhZlFuy.x.lLR9I9DkorwQgYxxP/0pMYxduZeYG",
+      "role": "citizen",
+      "bloodGroup": "O+",
+      "locality": "Dharampeth, Nagpur",
+      "isRegisteredDonor": false,
+      "createdAt": "2026-08-17T19:03:54.655Z",
+      "lastLogin": "2026-08-17T19:03:54.748Z"
+    },
+    {
       "id": "usr-1786990468167-673",
       "name": "34567i",
       "username": "34567i",
@@ -66,7 +108,7 @@
       "role": "admin",
       "locality": "Zero Mile, Nagpur",
       "createdAt": "2026-08-17T12:55:08.922Z",
-      "lastLogin": "2026-08-17T18:13:05.840Z"
+      "lastLogin": "2026-08-17T21:18:20.730Z"
     },
     {
       "id": "usr-hosp-01",
@@ -79,7 +121,7 @@
       "hospitalId": "NCEH001",
       "locality": "Civil Lines, Nagpur",
       "createdAt": "2026-08-17T12:55:08.922Z",
-      "lastLogin": "2026-08-17T17:30:14.796Z"
+      "lastLogin": "2026-08-17T21:32:47.516Z"
     },
     {
       "id": "usr-hosp-02",
@@ -109,6 +151,22 @@
     }
   ],
   "bloodDonors": [
+    {
+      "id": "donor-1786993682612",
+      "userId": "usr-1786993648651-430",
+      "name": "chetan wanadogri",
+      "phone": "53470753455",
+      "bloodGroup": "A-",
+      "locality": "Ramdaspeth",
+      "lat": 21.145,
+      "lng": 79.07,
+      "distanceKm": 2.6,
+      "donationsCount": 3,
+      "lastDonated": "New Donor",
+      "status": "Available",
+      "verified": true,
+      "registeredAt": "2026-08-17T19:08:02.612Z"
+    },
     {
       "id": "donor-1786989841451",
       "userId": "usr-1786989777884-621",
@@ -207,6 +265,50 @@
     }
   ],
   "ambulanceRequests": [
+    {
+      "id": "EMG-NAG-4214",
+      "userId": "usr-1786993434655-528",
+      "patientName": "shildhan",
+      "age": 98,
+      "gender": "Unknown",
+      "condition": "Severe Bleeding",
+      "severity": "URGENT",
+      "bloodGroup": "O+",
+      "locality": "Civil Lines",
+      "hospitalId": "NCEH001",
+      "hospitalName": "Nagpur Central Emergency Hospital",
+      "hospitalLocality": "Civil Lines / Central Nagpur",
+      "hospitalContact": "+91 712 255 1001",
+      "ambulanceCode": "ZM-1804",
+      "ambulanceType": "Advanced Life Support (ALS) Ambulance",
+      "driverName": "Amit Sharma",
+      "driverPhone": "+91 98221 44550",
+      "driverRating": 4.9,
+      "paramedic": "Dr. Neha Verma (ER Specialist)",
+      "etaMinutes": 14,
+      "etaSeconds": 892,
+      "initialEtaSeconds": 1080,
+      "status": "DISCHARGED",
+      "journeyStep": 6,
+      "is15mAlertTriggered": true,
+      "is15mAlertAccepted": true,
+      "acceptedTimestamp": "12:35:42 am",
+      "doctorFeedback": "shildhan ka andh dhila he",
+      "dischargedAt": "2026-08-17T19:06:24.610Z",
+      "vitals": {
+        "heartRate": 114,
+        "bp": "142/92",
+        "spO2": 93,
+        "respRate": 24,
+        "ecgRhythm": "Sinus Tachycardia",
+        "tempF": 98.4
+      },
+      "createdAt": "2026-08-17T19:04:42.575Z",
+      "dischargeStatus": "TREATED",
+      "outcome": "Fully Recovered & Discharged",
+      "dischargedByHospitalId": "NCEH001",
+      "dischargedByHospitalName": "Nagpur Central Emergency Hospital"
+    },
     {
       "id": "EMG-NAG-7624",
       "userId": null,
@@ -310,13 +412,13 @@
       "etaMinutes": 14,
       "etaSeconds": 892,
       "initialEtaSeconds": 1080,
-      "status": "EN ROUTE",
+      "status": "DISCHARGED",
       "journeyStep": 4,
       "is15mAlertTriggered": true,
       "is15mAlertAccepted": true,
       "acceptedTimestamp": "11:46:00 pm",
-      "doctorFeedback": null,
-      "dischargedAt": null,
+      "doctorFeedback": "This person is fine, received emergency treatment from our hospital, and is good now. Vitals have fully normalized.",
+      "dischargedAt": "2026-08-17T19:05:56.994Z",
       "vitals": {
         "heartRate": 114,
         "bp": "142/92",
@@ -325,7 +427,11 @@
         "ecgRhythm": "Sinus Tachycardia",
         "tempF": 98.4
       },
-      "createdAt": "2026-08-17T18:15:38.217Z"
+      "createdAt": "2026-08-17T18:15:38.217Z",
+      "dischargeStatus": "TREATED",
+      "outcome": "Fully Recovered & Discharged",
+      "dischargedByHospitalId": "NCEH001",
+      "dischargedByHospitalName": "Nagpur Central Emergency Hospital"
     },
     {
       "id": "EMG-NAG-8141",
@@ -701,6 +807,18 @@
   ],
   "contactDispatches": [
     {
+      "id": "disp-1786993707390",
+      "donorId": "donor-1786993682612",
+      "donorName": "chetan wanadogri",
+      "donorPhone": "53470753455",
+      "patientName": "Critical Patient",
+      "bloodGroup": "A-",
+      "locality": "Ramdaspeth",
+      "message": "URGENT BLOOD ALERT: Blood requirement at emergency unit in Nagpur.",
+      "timestamp": "2026-08-17T19:08:27.390Z",
+      "status": "SENT"
+    },
+    {
       "id": "disp-1786989890702",
       "donorId": "donor-105",
       "donorName": "Nikhil Meshram",
@@ -714,6 +832,116 @@
     }
   ],
   "loginLogs": [
+    {
+      "id": "log-1787002367517-212",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:32:47.517Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787002367447-459",
+      "userId": "usr-1787001500522-561",
+      "userName": "+91 98221 00112",
+      "name": "+91 98221 00112",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:32:47.447Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787002353545-526",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:32:33.545Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787002353465-357",
+      "userId": "usr-1787001500522-561",
+      "userName": "+91 98221 00112",
+      "name": "+91 98221 00112",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:32:33.465Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787001500732-952",
+      "userId": "usr-admin-01",
+      "userName": "admin",
+      "name": "ZeroMile Platform Admin",
+      "role": "admin",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:18:20.732Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787001500669-85",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:18:20.669Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787001500585-122",
+      "userId": "usr-1787001500522-561",
+      "userName": "+91 98221 00112",
+      "name": "+91 98221 00112",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T21:18:20.585Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1786993648764-328",
+      "userId": "usr-1786993648651-430",
+      "userName": "53470753455",
+      "name": "53470753455",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+      "timestamp": "2026-08-17T19:07:28.764Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1786993519740-380",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+      "timestamp": "2026-08-17T19:05:19.740Z",
+      "status": "FAILED_BAD_PASSWORD"
+    },
+    {
+      "id": "log-1786993434765-359",
+      "userId": "usr-1786993434655-528",
+      "userName": "919285725",
+      "name": "919285725",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+      "timestamp": "2026-08-17T19:03:54.765Z",
+      "status": "LOGIN_SUCCESS"
+    },
     {
       "id": "log-1786990552397-11",
       "userId": "usr-hosp-01",
@@ -880,12 +1108,29 @@
       "normalBedsTotal": 60,
       "normalBedsAvailable": 25,
       "ventilatorsTotal": 20,
-      "ventilatorsAvailable": 7,
+      "ventilatorsAvailable": 8,
       "traumaUnitsTotal": 8,
-      "traumaUnitsAvailable": 3,
+      "traumaUnitsAvailable": 4,
       "emergencyTeamStatus": "Available (Team Alpha Ready)",
       "bloodReservePercentage": 98,
       "inboundQueue": [
+        {
+          "id": "EMG-NAG-4214",
+          "patientName": "shildhan",
+          "age": 98,
+          "condition": "Severe Bleeding",
+          "severity": "URGENT",
+          "ambulanceCode": "ZM-1804",
+          "etaMinutes": 14,
+          "etaSeconds": 892,
+          "assignedDoctor": "Dr. S. Deshmukh",
+          "bedStatus": "✓ Treatment Completed • Fully Recovered & Discharged",
+          "isAlert15m": true,
+          "accepted": true,
+          "status": "DISCHARGED",
+          "doctorFeedback": "shildhan ka andh dhila he",
+          "dischargedAt": "2026-08-17T19:06:24.610Z"
+        },
         {
           "id": "EMG-NAG-1508",
           "patientName": "pradhum",
@@ -896,10 +1141,12 @@
           "etaMinutes": 14,
           "etaSeconds": 892,
           "assignedDoctor": "Dr. S. Deshmukh",
-          "bedStatus": "✓ ICU Bed & Trauma Bay Locked",
+          "bedStatus": "✓ Treatment Completed • Fully Recovered & Discharged",
           "isAlert15m": true,
           "accepted": true,
-          "status": "INCOMING"
+          "status": "DISCHARGED",
+          "doctorFeedback": "This person is fine, received emergency treatment from our hospital, and is good now. Vitals have fully normalized.",
+          "dischargedAt": "2026-08-17T19:05:56.994Z"
         },
         {
           "id": "EMG-NAG-8141",
