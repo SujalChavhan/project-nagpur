@@ -560,6 +560,8 @@ class MedConnectApp {
     const etaSecs = (alertData.etaSeconds || 892) % 60;
     const formattedClock = `${String(etaMins).padStart(2, '0')}:${String(etaSecs).padStart(2, '0')}`;
 
+    const isSos = alertData.isSos || alertData.severity === 'CRITICAL-SOS';
+
     if (alertData.isAccepted) {
       bannerContainer.innerHTML = `
         <div class="alert-15min-banner alert-accepted-banner animate-fade-in-up">
@@ -571,13 +573,14 @@ class MedConnectApp {
             </div>
             <div class="alert-patient-details">
               <div class="alert-headline" style="color: #ffffff;">
-                <span>✓ PREPARATION CONFIRMED — ER TEAM STANDING BY</span>
+                <span>✓ PREPARATION CONFIRMED — ER & TRAUMA TEAM STANDING BY</span>
               </div>
               <div class="alert-patient-meta">
-                <span><strong>Patient:</strong> ${alertData.patientName} (${alertData.age}y)</span>
+                <span><strong>Patient:</strong> ${alertData.patientName} (${alertData.age || 38}y)</span>
                 <span><strong>Severity:</strong> <span class="badge badge-critical">${alertData.severity}</span></span>
                 <span><strong>Condition:</strong> ${alertData.condition}</span>
                 <span><strong>Ambulance:</strong> ${alertData.ambulanceCode}</span>
+                ${alertData.gpsLat ? `<span><strong>GPS:</strong> 📍 ${Number(alertData.gpsLat).toFixed(4)}, ${Number(alertData.gpsLng).toFixed(4)}</span>` : ''}
               </div>
               <div class="alert-requirements-pill-row">
                 <span class="alert-req-pill">✓ ICU Bed Locked</span>
@@ -596,36 +599,37 @@ class MedConnectApp {
       `;
     } else {
       bannerContainer.innerHTML = `
-        <div class="alert-15min-banner alert-card-active animate-fade-in-up">
+        <div class="alert-15min-banner ${isSos ? 'animate-sos-strobe' : 'alert-card-active'} animate-fade-in-up" style="${isSos ? 'border: 3px solid #fecaca; box-shadow: 0 0 35px rgba(239, 68, 68, 0.85);' : ''}">
           <div class="alert-grid">
-            <div class="alert-eta-box">
-              <div class="alert-eta-label">🚨 INCOMING ETA</div>
+            <div class="alert-eta-box" style="${isSos ? 'background: rgba(0,0,0,0.5);' : ''}">
+              <div class="alert-eta-label">${isSos ? '🚨 INSTANT SOS' : '🚨 INCOMING ETA'}</div>
               <div class="alert-eta-clock">${formattedClock}</div>
-              <div style="font-size: 0.75rem; color: #fca5a5;">MINUTES AWAY</div>
+              <div style="font-size: 0.75rem; color: #fca5a5;">${isSos ? 'LIVE GPS BEACON' : 'MINUTES AWAY'}</div>
             </div>
             <div class="alert-patient-details">
               <div class="alert-headline">
                 <span class="live-dot-red"></span>
-                <span>🚨 CRITICAL PATIENT INCOMING — 15-MINUTE PRE-ARRIVAL PROTOCOL</span>
+                <span>${isSos ? '🚨 CRITICAL GPS SOS BEACON RECEIVED — IMMEDIATE TRAUMA DISPATCH' : '🚨 CRITICAL PATIENT INCOMING — 15-MINUTE PRE-ARRIVAL PROTOCOL'}</span>
               </div>
               <div class="alert-patient-meta">
                 <span><strong>Patient:</strong> ${alertData.patientName}</span>
-                <span><strong>Age:</strong> ${alertData.age}</span>
+                <span><strong>Age:</strong> ${alertData.age || 38}</span>
                 <span><strong>Condition:</strong> ${alertData.condition}</span>
                 <span><strong>Severity:</strong> <span class="badge badge-critical animate-critical-flash">${alertData.severity}</span></span>
                 <span><strong>Ambulance:</strong> ${alertData.ambulanceCode}</span>
+                ${alertData.gpsLat ? `<span><strong>GPS:</strong> 📍 ${Number(alertData.gpsLat).toFixed(4)}, ${Number(alertData.gpsLng).toFixed(4)}</span>` : ''}
               </div>
               <div class="alert-requirements-pill-row">
-                <span class="alert-req-pill">⚠️ ICU Required</span>
-                <span class="alert-req-pill">⚠️ Trauma Team Required</span>
-                <span class="alert-req-pill">⚠️ Emergency Staff Required</span>
+                <span class="alert-req-pill">⚠️ ICU Bed Reserved</span>
+                <span class="alert-req-pill">⚠️ Emergency Surgical Team</span>
+                <span class="alert-req-pill">⚠️ Blood Standby Ready</span>
               </div>
             </div>
             <div class="alert-action-column">
-              <button id="acceptPrepareAlertBtn" class="btn btn-xl btn-tactile" style="background: #ffffff; color: #991b1b; box-shadow: 0 6px 20px rgba(0,0,0,0.3); font-weight: 800; font-size: 1.1rem;" onclick="window.medStore.acceptAndPrepare15mAlert('${hosp.id}', '${alertData.id}'); window.medAudio.playSuccessChime(); window.app.showToast('✓ PREPARATION CONFIRMED: Locked ICU resources for ${alertData.patientName}!', 'success');">
-                ACCEPT & PREPARE
+              <button id="acceptPrepareAlertBtn" class="btn btn-xl btn-tactile" style="background: #ffffff; color: #991b1b; box-shadow: 0 6px 20px rgba(0,0,0,0.3); font-weight: 800; font-size: 1.05rem;" onclick="window.medStore.acceptAndPrepare15mAlert('${currentHosp.id}', '${alertData.id}'); window.medAudio.playSuccessChime(); window.app.showToast('✓ PREPARATION CONFIRMED: Locked ICU resources for ${alertData.patientName}!', 'success');">
+                ${isSos ? 'ASSIGN NEAREST AMBULANCE & PREPARE' : 'ACCEPT & PREPARE'}
               </button>
-              <span style="font-size: 0.7rem; color: #fecaca; margin-top: 4px;">Locks ICU bed & notifies surgical team</span>
+              <span style="font-size: 0.7rem; color: #fecaca; margin-top: 4px;">Locks ICU bed & alerts surgical trauma bay</span>
             </div>
           </div>
         </div>
@@ -662,7 +666,7 @@ class MedConnectApp {
 
     const activeEmgCard = document.getElementById('citizenActiveEmgCard');
     if (activeEmgCard) {
-      if (emg && emg.status !== 'COMPLETED') {
+      if (emg && emg.status !== 'COMPLETED' && emg.status !== 'DISCHARGED') {
         const etaMins = Math.floor((emg.etaSeconds || 0) / 60);
         const etaSecs = (emg.etaSeconds || 0) % 60;
         const clock = `${String(etaMins).padStart(2, '0')}:${String(etaSecs).padStart(2, '0')}`;
@@ -672,27 +676,34 @@ class MedConnectApp {
         const pSev = emg.patient ? emg.patient.severity : emg.severity;
         const ambCode = emg.ambulance ? emg.ambulance.code : emg.ambulanceCode;
         const hospName = emg.hospital ? emg.hospital.name : emg.hospitalName;
+        const isSos = emg.isSos || emg.severity === 'CRITICAL-SOS';
 
         activeEmgCard.innerHTML = `
-          <div class="card card-critical animate-fade-in-up" style="padding: var(--space-5);">
+          <div class="card card-critical animate-fade-in-up" style="padding: var(--space-5); border: 2px solid #ef4444; box-shadow: 0 10px 30px rgba(220, 38, 38, 0.25);">
+            ${isSos ? `
+              <div style="padding: 8px 14px; background: rgba(220, 38, 38, 0.15); border-radius: 8px; border: 1px solid rgba(220, 38, 38, 0.4); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 800; color: #dc2626;">
+                <span class="live-dot-red"></span>
+                <span>🚨 SOS DISPATCHED: Nearest hospital and ambulance have received your live GPS location. Stay calm.</span>
+              </div>
+            ` : ''}
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span class="live-dot-red"></span>
                 <strong style="color: var(--critical-700); font-size: 1rem;">ACTIVE EMERGENCY IN PROGRESS</strong>
               </div>
-              <span class="badge badge-critical">${pSev}</span>
+              <span class="badge badge-critical animate-critical-flash">${pSev}</span>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; align-items: center;">
               <div>
-                <div style="font-size: 0.85rem; color: #0f172a;"><strong>Patient:</strong> ${pName} (${pCond})</div>
-                <div style="font-size: 0.8rem; color: #64748b;">Assigned: ${ambCode} • Target: ${hospName}</div>
+                <div style="font-size: 0.88rem; color: #0f172a;"><strong>Patient:</strong> ${pName} (${pCond})</div>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">Assigned: <strong>${ambCode}</strong> • Target: <strong>${hospName}</strong></div>
               </div>
               <div>
                 <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase;">Estimated Arrival</div>
                 <div class="font-mono" id="citizenDashEtaClock" style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">${clock}</div>
               </div>
-              <button class="btn btn-sm btn-critical" data-view-target="ambulance">
-                📍 Track Live Route $\rightarrow$
+              <button class="btn btn-sm btn-critical btn-tactile" data-view-target="ambulance">
+                📍 Track Live GPS Route ➔
               </button>
             </div>
           </div>
@@ -700,7 +711,7 @@ class MedConnectApp {
       } else {
         activeEmgCard.innerHTML = `
           <div class="card" style="padding: var(--space-4); background: #f8fafc; border-style: dashed; text-align: center;">
-            <p style="font-size: 0.85rem; color: #64748b; margin: 0;">No active emergency in progress. Click "Request Ambulance" to dispatch nearest Nagpur ambulance.</p>
+            <p style="font-size: 0.85rem; color: #64748b; margin: 0;">No active emergency in progress. Click "Request Ambulance" or "Emergency SOS" to dispatch nearest Nagpur ambulance.</p>
           </div>
         `;
       }
@@ -1656,6 +1667,108 @@ class MedConnectApp {
       this.showToast('Authenticated as Platform Master Admin', 'success');
       if (window.medAudio) window.medAudio.playSuccessChime();
       this.switchView('admin');
+    }
+  }
+
+  // --- 1-Click Instant GPS SOS Emergency System ---
+  openSosModal() {
+    const modal = document.getElementById('instantSosModal');
+    if (!modal) return;
+
+    // Reset status & button text
+    const statusBox = document.getElementById('sosGpsStatusBox');
+    const statusText = document.getElementById('sosGpsStatusText');
+    const confirmBtn = document.getElementById('confirmSosDispatchBtn');
+
+    if (statusBox) {
+      statusBox.style.background = '#fef2f2';
+      statusBox.style.borderColor = '#fecaca';
+      statusBox.style.color = '#991b1b';
+    }
+    if (statusText) {
+      statusText.innerHTML = '📍 Auto-detecting live GPS coordinates in Nagpur...';
+    }
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '🚨 YES, DISPATCH AMBULANCE NOW';
+    }
+
+    if (window.medAudio) window.medAudio.playEmergencyAlert();
+
+    this.openModal('instantSosModal');
+
+    // Pre-warm geolocation in background
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (statusText) {
+            statusText.innerHTML = `📍 Precise GPS Locked: <strong>${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}</strong> (±${Math.round(pos.coords.accuracy)}m)`;
+          }
+          if (statusBox) {
+            statusBox.style.background = '#ecfdf5';
+            statusBox.style.borderColor = '#a7f3d0';
+            statusBox.style.color = '#065f46';
+          }
+        },
+        (err) => {
+          if (statusText) {
+            statusText.innerHTML = '📍 GPS Ready (Using Nagpur City Center fallback)';
+          }
+        },
+        { enableHighAccuracy: true, timeout: 3000, maximumAge: 10000 }
+      );
+    }
+  }
+
+  async confirmSosDispatch() {
+    const confirmBtn = document.getElementById('confirmSosDispatchBtn');
+    const statusText = document.getElementById('sosGpsStatusText');
+
+    if (confirmBtn) {
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '⏳ Transmitting Live GPS & Dispatching...';
+    }
+    if (statusText) {
+      statusText.innerHTML = '🛰️ Transmitting emergency telemetry to Nagpur EOC...';
+    }
+
+    // Capture live GPS with 3-second timeout
+    let gpsCoords = { lat: 21.1458, lng: 79.0882, accuracy: 10 };
+
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 3000,
+            maximumAge: 10000
+          });
+        });
+        if (pos && pos.coords) {
+          gpsCoords = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          };
+        }
+      } catch (e) {
+        console.warn('[GPS SOS note]: Using fallback coordinates');
+      }
+    }
+
+    try {
+      const emg = await window.medStore.triggerInstantSos(gpsCoords);
+      this.closeAllModals();
+
+      if (window.medAudio) window.medAudio.playEmergencyAlert();
+
+      this.showToast('🚨 SOS DISPATCHED: ALS Ambulance en route to your live GPS coordinates! Nearest hospital notified.', 'critical');
+
+      // Switch to tracking view
+      this.switchView('ambulance');
+    } catch (err) {
+      this.showToast('Failed to dispatch SOS: ' + err.message, 'critical');
+      if (confirmBtn) confirmBtn.disabled = false;
     }
   }
 

@@ -256,6 +256,13 @@ class MedConnectAPI {
     });
   }
 
+  async triggerSosRequest(sosData) {
+    return await this.request('/api/ambulance/sos-request', {
+      method: 'POST',
+      body: JSON.stringify(sosData)
+    });
+  }
+
   async updateAmbulanceStatus(id, updates) {
     return await this.request(`/api/ambulance/${id}/status`, {
       method: 'PATCH',

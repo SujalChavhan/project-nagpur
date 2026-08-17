@@ -518,7 +518,137 @@ class MedConnectStore {
     return formatted;
   }
 
-  // --- Real-time 1-Second Master Countdown Timer ---
+  // --- 1-Click Instant GPS SOS Emergency Dispatch ---
+  async triggerInstantSos(gpsData = {}) {
+    const citizen = this.state.session.citizen || {};
+    const lat = gpsData.lat || 21.1458;
+    const lng = gpsData.lng || 79.0882;
+    const accuracy = gpsData.accuracy || 10;
+
+    const sosPayload = {
+      userId: citizen.id || 'citizen-sos',
+      patientName: citizen.name || 'Citizen in Distress (SOS)',
+      phone: citizen.phone || '+91 98221 00112',
+      locality: `Live GPS Location (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`,
+      lat: lat,
+      lng: lng,
+      accuracy: accuracy,
+      condition: '🚨 GPS SOS Life-Threatening Emergency',
+      severity: 'CRITICAL-SOS',
+      bloodGroup: citizen.bloodGroup || 'O+'
+    };
+
+    let serverEmergency = null;
+    if (window.medApi) {
+      try {
+        const res = await window.medApi.triggerSosRequest(sosPayload);
+        if (res && res.success && res.emergency) {
+          serverEmergency = res.emergency;
+        }
+      } catch (err) {
+        console.warn('Backend SOS request note: executing locally');
+      }
+    }
+
+    if (serverEmergency) {
+      const formatted = this.formatAndSetActiveEmergency(serverEmergency);
+      this.notify('SOS_DISPATCHED', formatted);
+      return formatted;
+    }
+
+    // Local Fallback dispatch
+    const targetHosp = this.getHospitalById('NCEH001');
+    const pCoords = { lat: lat, lng: lng, name: `Live GPS (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})` };
+    const hCoords = { lat: targetHosp.lat || 21.1552, lng: targetHosp.lng || 79.0865, name: targetHosp.name };
+    const waypoints = (typeof NAGPUR_DATA !== 'undefined' && NAGPUR_DATA.generateRouteWaypoints)
+      ? NAGPUR_DATA.generateRouteWaypoints(pCoords, hCoords)
+      : [
+          { lat: pCoords.lat, lng: pCoords.lng, name: `SOS GPS Location` },
+          { lat: pCoords.lat + (hCoords.lat - pCoords.lat) * 0.5, lng: pCoords.lng + (hCoords.lng - pCoords.lng) * 0.5, name: "Emergency Corridor" },
+          { lat: hCoords.lat, lng: hCoords.lng, name: targetHosp.name }
+        ];
+
+    const localSos = {
+      id: `EMG-SOS-${Math.floor(1000 + Math.random() * 9000)}`,
+      patient: {
+        name: sosPayload.patientName,
+        age: 38,
+        condition: sosPayload.condition,
+        severity: "CRITICAL-SOS",
+        bloodGroup: sosPayload.bloodGroup,
+        vitals: { heartRate: 128, bp: "160/105", spO2: 91, respRate: 28, ecgRhythm: "Sinus Tachycardia / Acute Stress", tempF: 98.6 }
+      },
+      ambulance: {
+        code: `ZM-SOS-${Math.floor(1000 + Math.random() * 9000)}`,
+        type: "Advanced Life Support (ALS) Trauma Unit",
+        driver: "Amit Sharma",
+        driverRating: 4.9,
+        driverPhone: "+91 98221 44550",
+        paramedic: "Dr. Neha Verma (ER Specialist)",
+        plateNumber: "MH 31 EQ 4088",
+        currentSpeedKmh: 75,
+        currentLat: waypoints[1].lat,
+        currentLng: waypoints[1].lng
+      },
+      pickup: { name: sosPayload.locality, lat: pCoords.lat, lng: pCoords.lng, isGps: true, accuracy: accuracy },
+      destinationHospitalId: targetHosp.id,
+      hospital: {
+        id: targetHosp.id,
+        name: targetHosp.name,
+        code: targetHosp.code,
+        locality: targetHosp.locality,
+        contact: targetHosp.emergencyContact,
+        lat: hCoords.lat,
+        lng: hCoords.lng
+      },
+      routeWaypoints: waypoints,
+      etaSeconds: 600,
+      initialEtaSeconds: 600,
+      journeyStep: 4,
+      status: "EN ROUTE (SOS ACTIVE)",
+      ambulanceStatus: "EN ROUTE (SOS ACTIVE)",
+      isSos: true,
+      is15mAlertTriggered: true,
+      is15mAlertAccepted: false,
+      acceptedTimestamp: null,
+      doctorFeedback: null,
+      outcome: null,
+      dischargedAt: null
+    };
+
+    this.state.activeEmergency = localSos;
+    if (this.state.hospitals && this.state.hospitals[targetHosp.id]) {
+      const hosp = this.state.hospitals[targetHosp.id];
+      if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
+      if (!hosp.inboundQueue) hosp.inboundQueue = [];
+      hosp.inboundQueue.unshift({
+        id: localSos.id,
+        patientName: localSos.patient.name,
+        age: 38,
+        condition: localSos.patient.condition,
+        severity: "CRITICAL-SOS",
+        ambulanceCode: localSos.ambulance.code,
+        etaMinutes: 10,
+        etaSeconds: 600,
+        isSos: true,
+        gpsLat: lat,
+        gpsLng: lng,
+        assignedDoctor: "Dr. S. Deshmukh",
+        bedStatus: "ICU / Trauma Unit Reserved",
+        isAlert15m: true,
+        accepted: false,
+        status: "INCOMING"
+      });
+    }
+
+    this.saveState();
+    this.notify('EMERGENCY_CREATED', { emergency: localSos, hospital: targetHosp });
+    this.notify('SOS_DISPATCHED', localSos);
+    this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    return localSos;
+  }
+
+  // --- 1-Second Master Countdown Timer ---
   initCountdownTimer() {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
 

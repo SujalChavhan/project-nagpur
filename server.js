@@ -452,6 +452,99 @@ app.post('/api/ambulance/request', (req, res) => {
   }
 });
 
+// ==========================================
+// 3B. 1-CLICK INSTANT GPS SOS EMERGENCY ENDPOINT
+// ==========================================
+app.post('/api/ambulance/sos-request', (req, res) => {
+  try {
+    const {
+      userId,
+      patientName = 'Citizen in Distress (SOS)',
+      phone = '+91 98221 00112',
+      locality = 'Live GPS Location (Nagpur)',
+      lat = 21.1458,
+      lng = 79.0882,
+      accuracy = 10,
+      condition = '🚨 GPS SOS Life-Threatening Emergency',
+      severity = 'CRITICAL-SOS',
+      bloodGroup = 'O+'
+    } = req.body || {};
+
+    const allHospitals = db.getHospitals();
+    
+    // Auto-calculate nearest hospital from live GPS coordinates
+    let bestHospId = 'NCEH001';
+    let minDistance = Infinity;
+
+    Object.values(allHospitals).forEach(hosp => {
+      const hLat = hosp.lat || 21.1550;
+      const hLng = hosp.lng || 79.0750;
+      const dist = Math.sqrt(Math.pow(lat - hLat, 2) + Math.pow(lng - hLng, 2));
+      if (dist < minDistance && hosp.icuBedsAvailable > 0) {
+        minDistance = dist;
+        bestHospId = hosp.id;
+      }
+    });
+
+    // Create high-priority SOS emergency
+    const emergency = db.createAmbulanceRequest({
+      userId: req.user ? req.user.id : (userId || 'citizen-sos'),
+      patientName: req.user ? req.user.name : patientName,
+      phone: req.user ? req.user.phone : phone,
+      age: 38,
+      condition: condition || '🚨 GPS SOS Life-Threatening Emergency',
+      severity: 'CRITICAL-SOS',
+      locality: `${locality} [GPS: ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}]`,
+      hospitalId: bestHospId,
+      bloodGroup: bloodGroup || 'O+',
+      ambulanceCode: `ZM-SOS-${Math.floor(1000 + Math.random() * 9000)}`,
+      ambulanceType: 'Advanced Life Support (ALS) Trauma Unit',
+      isSos: true,
+      gpsLat: lat,
+      gpsLng: lng,
+      gpsAccuracy: accuracy,
+      vitals: {
+        heartRate: 128,
+        bp: '160/105',
+        spO2: 91,
+        respRate: 28,
+        ecgRhythm: 'Sinus Tachycardia / Acute Stress',
+        tempF: 98.6
+      }
+    });
+
+    const targetHosp = db.getHospitalById(emergency.hospitalId);
+
+    console.log(`🚨 [INSTANT GPS SOS DISPATCHED]: Emergency ID ${emergency.id} for GPS (${lat}, ${lng}) -> Dispatched to ${targetHosp.name}`);
+
+    // Broadcast high-priority real-time SOS alert to Hospital EOCs and public network
+    broadcastEvent('SOS_ALERT', {
+      emergency,
+      hospital: targetHosp,
+      hospitals: db.getHospitals(),
+      isSos: true,
+      gps: { lat, lng, accuracy }
+    });
+
+    broadcastEvent('EMERGENCY_CREATED', {
+      emergency,
+      hospital: targetHosp,
+      hospitals: db.getHospitals(),
+      isSos: true
+    });
+
+    return res.json({
+      success: true,
+      message: '🚨 Emergency SOS Dispatched! Nearest hospital and ambulance have received your live GPS location. Stay calm.',
+      emergency,
+      hospital: targetHosp
+    });
+  } catch (error) {
+    console.error('Instant SOS request error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to process instant GPS SOS request' });
+  }
+});
+
 // Update Ambulance Status / Telemetry
 app.patch('/api/ambulance/:id/status', (req, res) => {
   try {

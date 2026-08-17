@@ -170,7 +170,7 @@
               🔐 Sign In / Portals
             </button>
           </div>
-          <button class="btn btn-sm btn-critical btn-tactile" onclick="window.app.openRequestAmbulanceStep1()">
+          <button class="btn btn-sm btn-sos-glow btn-tactile" onclick="window.app.openSosModal()" title="1-Click Instant GPS SOS Emergency Dispatch">
             🚨 SOS
           </button>
         </div>
@@ -607,6 +607,29 @@
   <main class="view-section" id="view-citizen" style="display: none; padding: var(--space-6) 0 var(--space-12);">
     <div class="container">
       
+      <!-- 🚨 1-CLICK INSTANT GPS SOS EMERGENCY HERO BANNER -->
+      <div class="card card-elevated" style="background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%); border: 2px solid #ef4444; box-shadow: 0 12px 35px rgba(220, 38, 38, 0.35); border-radius: 18px; padding: 20px 24px; margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 58px; height: 58px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);" class="animate-emergency-pulse">
+              🚨
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h3 style="font-size: 1.35rem; color: #ffffff; margin: 0; font-weight: 900; letter-spacing: -0.01em;">1-Click Instant GPS SOS</h3>
+                <span class="badge badge-critical animate-critical-flash" style="font-weight: 800; font-size: 0.75rem;">ZERO CONVERSATION</span>
+              </div>
+              <p style="font-size: 0.88rem; color: #fecaca; margin: 4px 0 0 0;">
+                Life-threatening emergency? Instantly transmit your live GPS location & dispatch the nearest ALS trauma ambulance.
+              </p>
+            </div>
+          </div>
+          <button class="btn btn-lg btn-sos-glow btn-tactile" onclick="window.app.openSosModal()" style="padding: 14px 28px; font-size: 1.05rem; border-radius: 14px;">
+            🚨 TRIGGER EMERGENCY SOS ➔
+          </button>
+        </div>
+      </div>
+
       <!-- Citizen Profile Header -->
       <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-6); border: 1px solid var(--border-subtle); background: #ffffff;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
@@ -1754,6 +1777,51 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       14B. MODAL: INSTANT ZERO-CONVERSATION GPS SOS EMERGENCY
+       ========================================================================= -->
+  <div class="modal-backdrop" id="instantSosModal">
+    <div class="modal-dialog" style="max-width: 520px; border-radius: 20px; overflow: hidden; border: 2px solid #ef4444; box-shadow: 0 25px 60px rgba(220,38,38,0.5); background: #ffffff;">
+      <div class="card-header" style="background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); color: #ffffff; padding: 20px 24px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;" class="animate-emergency-pulse">
+            🚨
+          </div>
+          <div>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #fca5a5; text-transform: uppercase; letter-spacing: 0.05em;">HIGH PRIORITY EMERGENCY BEACON</span>
+            <h3 style="font-size: 1.35rem; color: #ffffff; margin: 2px 0 0 0; font-weight: 900;">Emergency SOS Confirmation</h3>
+          </div>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal style="color: #ffffff;">✕</button>
+      </div>
+
+      <div class="card-body" style="padding: 24px; text-align: center;">
+        <div style="margin-bottom: 20px;">
+          <div style="font-size: 1.4rem; font-weight: 900; color: var(--navy-900); line-height: 1.35;">
+            🚨 Do you want an ambulance dispatched immediately to your current location?
+          </div>
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 10px; line-height: 1.5;">
+            Zero-Mile MedConnect will automatically capture your <strong>precise live GPS coordinates</strong> and dispatch the nearest Advanced Life Support (ALS) trauma ambulance with pre-arrival hospital triage.
+          </p>
+        </div>
+
+        <div id="sosGpsStatusBox" style="padding: 14px; background: #fef2f2; border-radius: 12px; border: 1px solid #fecaca; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.88rem; color: #991b1b; font-weight: 700;">
+          <span class="live-dot-red"></span>
+          <span id="sosGpsStatusText">📍 Auto-detecting live GPS coordinates in Nagpur...</span>
+        </div>
+      </div>
+
+      <div class="card-footer" style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 14px;">
+        <button type="button" class="btn btn-lg btn-secondary" data-close-modal style="flex: 1; font-weight: 700; border-radius: 12px;">
+          Cancel
+        </button>
+        <button type="button" id="confirmSosDispatchBtn" class="btn btn-lg btn-sos-glow btn-tactile" onclick="window.app.confirmSosDispatch()" style="flex: 2; font-weight: 900; font-size: 0.98rem; border-radius: 12px;">
+          🚨 YES, DISPATCH AMBULANCE NOW
+        </button>
+      </div>
     </div>
   </div>
 
