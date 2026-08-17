@@ -583,7 +583,7 @@ class MedConnectApp {
               </div>
             </div>
             <div class="alert-action-column">
-              <button id="acceptPrepareAlertBtn" class="btn btn-xl btn-tactile" style="background: #ffffff; color: #991b1b; box-shadow: 0 6px 20px rgba(0,0,0,0.3); font-weight: 800; font-size: 1.1rem;" onclick="window.medStore.acceptAndPrepare15mAlert(); window.medAudio.playSuccessChime(); window.app.showToast('✓ PREPARATION CONFIRMED: Hospital Resources Locked!', 'success');">
+              <button id="acceptPrepareAlertBtn" class="btn btn-xl btn-tactile" style="background: #ffffff; color: #991b1b; box-shadow: 0 6px 20px rgba(0,0,0,0.3); font-weight: 800; font-size: 1.1rem;" onclick="window.medStore.acceptAndPrepare15mAlert('${hosp.id}', '${alertData.id}'); window.medAudio.playSuccessChime(); window.app.showToast('✓ PREPARATION CONFIRMED: Locked ICU resources for ${alertData.patientName}!', 'success');">
                 ACCEPT & PREPARE
               </button>
               <span style="font-size: 0.7rem; color: #fecaca; margin-top: 4px;">Locks ICU bed & notifies surgical team</span>
@@ -978,7 +978,7 @@ class MedConnectApp {
                       Discharge & Free Bed
                     </button>
                   ` : `
-                    <button class="btn btn-sm btn-critical btn-tactile" style="width: 100%; font-weight: 700;" onclick="window.medStore.acceptAndPrepare15mAlert('${hosp.id}'); window.medAudio.playSuccessChime();">
+                    <button class="btn btn-sm btn-critical btn-tactile" style="width: 100%; font-weight: 700;" onclick="window.medStore.acceptAndPrepare15mAlert('${hosp.id}', '${p.id}'); window.medAudio.playSuccessChime(); window.app.showToast('✓ PREPARATION CONFIRMED: Locked ICU bay for ${p.patientName}!', 'success');">
                       Accept Alert
                     </button>
                   `))}

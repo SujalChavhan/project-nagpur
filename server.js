@@ -548,6 +548,7 @@ app.post('/api/hospitals/:id/accept-alert', (req, res) => {
     broadcastEvent('ALERT_ACCEPTED', {
       hospital: result.hospital,
       activeEmergency: result.activeEmergency,
+      requestId: result.requestId,
       hospitals: db.getHospitals()
     });
 
@@ -555,7 +556,8 @@ app.post('/api/hospitals/:id/accept-alert', (req, res) => {
       success: true,
       message: `Emergency resources locked and confirmed at ${result.hospital.name}`,
       hospital: result.hospital,
-      activeEmergency: result.activeEmergency
+      activeEmergency: result.activeEmergency,
+      requestId: result.requestId
     });
   } catch (error) {
     console.error('Accept alert error:', error);

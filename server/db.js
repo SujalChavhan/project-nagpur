@@ -666,33 +666,43 @@ class Database {
     return hosp;
   }
 
-  // Accept 15-minute Pre-Arrival Alert & Lock Resources
+  // Accept 15-minute Pre-Arrival Alert & Lock Resources (Strictly Isolated to Specific Request ID)
   acceptHospitalAlert(hospitalId, requestId = null) {
     const hosp = this.getHospitalById(hospitalId);
     if (!hosp) return { success: false, message: 'Hospital not found' };
 
-    // Decrement available beds and lock resources
-    if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
-    if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
-    if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
-
-    // Update inbound queue
+    // Find ONLY the single target inbound queue item
+    let targetQueueItem = null;
     if (hosp.inboundQueue && Array.isArray(hosp.inboundQueue)) {
-      hosp.inboundQueue.forEach(p => {
-        if (!requestId || p.id === requestId) {
-          p.accepted = true;
-          p.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
+      if (requestId) {
+        targetQueueItem = hosp.inboundQueue.find(p => p.id === requestId);
+      } else {
+        targetQueueItem = hosp.inboundQueue.find(p => !p.accepted && p.status !== 'DISCHARGED');
+      }
+
+      if (targetQueueItem) {
+        if (!targetQueueItem.accepted) {
+          targetQueueItem.accepted = true;
+          targetQueueItem.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
+
+          // Decrement available beds and lock resources for this single accepted patient
+          if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
+          if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
+          if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
         }
-      });
+      }
     }
 
+    // Find and update ONLY the single matching ambulance request
+    const actualReqId = requestId || (targetQueueItem ? targetQueueItem.id : null);
     let activeReq = null;
-    if (requestId) {
-      activeReq = this.getAmbulanceRequestById(requestId);
+    if (actualReqId) {
+      activeReq = this.getAmbulanceRequestById(actualReqId);
     }
     if (!activeReq) {
       activeReq = this.data.ambulanceRequests.find(r => r.hospitalId === hospitalId && !r.is15mAlertAccepted);
     }
+
     if (activeReq) {
       activeReq.is15mAlertAccepted = true;
       activeReq.acceptedTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -702,7 +712,8 @@ class Database {
     return {
       success: true,
       hospital: hosp,
-      activeEmergency: activeReq
+      activeEmergency: activeReq,
+      requestId: actualReqId
     };
   }
 

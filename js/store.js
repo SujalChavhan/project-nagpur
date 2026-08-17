@@ -262,10 +262,12 @@ class MedConnectStore {
       this.saveState();
       this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
     } else if (evtType === 'ALERT_ACCEPTED') {
-      if (payload.hospital) {
+      if (payload.hospitals) {
+        this.state.hospitals = payload.hospitals;
+      } else if (payload.hospital) {
         this.state.hospitals[payload.hospital.id] = payload.hospital;
       }
-      if (payload.activeEmergency && this.state.activeEmergency) {
+      if (payload.activeEmergency && this.state.activeEmergency && (!payload.requestId || this.state.activeEmergency.id === payload.requestId)) {
         this.state.activeEmergency.is15mAlertAccepted = true;
         this.state.activeEmergency.acceptedTimestamp = payload.activeEmergency.acceptedTimestamp || new Date().toLocaleTimeString();
       }
@@ -1034,20 +1036,21 @@ class MedConnectStore {
     return this.state.activeEmergency;
   }
 
-  // --- Hospital Portal: Accept & Prepare ---
-  async acceptAndPrepare15mAlert(hospitalId = null) {
+  // --- Hospital Portal: Accept & Prepare (Strictly Isolated to Specific Request ID) ---
+  async acceptAndPrepare15mAlert(hospitalId = null, requestId = null) {
     const hid = hospitalId || this.getCurrentHospitalId();
     const hosp = this.getHospitalById(hid);
     if (!hosp) return null;
 
+    const targetReqId = requestId || (this.state.activeEmergency ? this.state.activeEmergency.id : null);
     const acceptedTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
     if (window.medApi) {
       try {
-        const res = await window.medApi.acceptHospitalAlert(hid);
+        const res = await window.medApi.acceptHospitalAlert(hid, targetReqId);
         if (res && res.success) {
           if (res.hospital) this.state.hospitals[hid] = res.hospital;
-          if (res.activeEmergency && this.state.activeEmergency) {
+          if (res.activeEmergency && this.state.activeEmergency && this.state.activeEmergency.id === res.activeEmergency.id) {
             this.state.activeEmergency.is15mAlertAccepted = true;
             this.state.activeEmergency.acceptedTimestamp = res.activeEmergency.acceptedTimestamp || acceptedTimeStr;
           }
@@ -1057,18 +1060,19 @@ class MedConnectStore {
       }
     }
 
-    if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
-    if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
-    if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
-
+    // Local fallback update for ONLY the single target request
     if (hosp.inboundQueue && Array.isArray(hosp.inboundQueue)) {
-      hosp.inboundQueue.forEach(p => {
-        p.accepted = true;
-        p.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
-      });
+      const qItem = hosp.inboundQueue.find(p => targetReqId ? p.id === targetReqId : !p.accepted);
+      if (qItem && !qItem.accepted) {
+        qItem.accepted = true;
+        qItem.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
+        if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
+        if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
+        if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
+      }
     }
 
-    if (this.state.activeEmergency) {
+    if (this.state.activeEmergency && (!targetReqId || this.state.activeEmergency.id === targetReqId)) {
       this.state.activeEmergency.is15mAlertAccepted = true;
       this.state.activeEmergency.acceptedTimestamp = acceptedTimeStr;
     }

@@ -247,9 +247,10 @@ class MedConnectAPI {
     });
   }
 
-  async acceptHospitalAlert(hospitalId) {
+  async acceptHospitalAlert(hospitalId, requestId = null) {
     return await this.request(`/api/hospitals/${hospitalId}/accept-alert`, {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ requestId })
     });
   }
 
