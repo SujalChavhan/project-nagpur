@@ -23,7 +23,7 @@
       "hospitalId": "NCEH001",
       "locality": "Civil Lines, Nagpur",
       "createdAt": "2026-08-17T12:55:08.922Z",
-      "lastLogin": "2026-08-17T16:38:32.327Z"
+      "lastLogin": "2026-08-17T17:00:25.728Z"
     },
     {
       "id": "usr-hosp-02",
@@ -249,6 +249,28 @@
   ],
   "contactDispatches": [],
   "loginLogs": [
+    {
+      "id": "log-1786986025731-246",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+      "timestamp": "2026-08-17T17:00:25.731Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1786986020511-338",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0",
+      "timestamp": "2026-08-17T17:00:20.511Z",
+      "status": "LOGIN_SUCCESS"
+    },
     {
       "id": "log-1786984712334-27",
       "userId": "usr-hosp-01",

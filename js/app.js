@@ -7,7 +7,7 @@
 
 class MedConnectApp {
   constructor() {
-    this.currentView = 'landing';
+    this.currentView = 'login';
     this.selectedBloodGroup = 'O+';
     this.currentAdminTab = 'donors';
     this.charts = {};
@@ -16,7 +16,7 @@ class MedConnectApp {
   }
 
   init() {
-    console.log("Initializing Zero-Mile MedConnect with Live Backend...");
+    console.log("Initializing Zero-Mile MedConnect (Authentication-First Gateway)...");
 
     // Setup Navigation & Portal Switchers
     this.setupNavigation();
@@ -29,6 +29,18 @@ class MedConnectApp {
 
     // Setup Live Continuous Telemetry & Canvas ECG
     this.startContinuousTelemetry();
+
+    // Authentication-First Check: If authenticated, open user's dashboard; otherwise open Authentication Gateway
+    const currentRole = window.medStore.getCurrentRole();
+    if (currentRole === 'citizen') {
+      this.switchView('citizen');
+    } else if (currentRole === 'hospital') {
+      this.switchView('hospital');
+    } else if (currentRole === 'admin') {
+      this.switchView('admin');
+    } else {
+      this.switchView('login');
+    }
 
     // Initial Master Render
     this.renderAll();
@@ -128,6 +140,9 @@ class MedConnectApp {
       this.renderHospitalEOC();
       if (session.role === 'admin') {
         this.renderAdminDashboard();
+      }
+      if (session.role === 'guest' && this.currentView !== 'landing' && this.currentView !== 'login') {
+        this.switchView('login');
       }
     });
 
@@ -260,7 +275,7 @@ class MedConnectApp {
         userBadge.innerHTML = `
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="badge badge-primary" style="font-size:0.8rem; padding: 4px 10px;">👤 ${c.name}</span>
-            <button class="btn btn-sm btn-ghost" style="color: #64748b;" onclick="window.medStore.logout(); window.app.switchView('landing'); window.app.showToast('Logged out', 'neutral');">Logout</button>
+            <button class="btn btn-sm btn-ghost" style="color: #64748b;" onclick="window.medStore.logout(); window.app.switchView('login'); window.app.showToast('Logged out. Returned to Login Gateway.', 'neutral');">Logout</button>
           </div>
         `;
       } else if (role === 'hospital') {
@@ -269,21 +284,19 @@ class MedConnectApp {
         userBadge.innerHTML = `
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="badge badge-critical" style="font-size:0.8rem; padding: 4px 10px;">🏥 ${hosp.code}</span>
-            <button class="btn btn-sm btn-ghost" style="color: #64748b;" onclick="window.medStore.logout(); window.app.switchView('landing'); window.app.showToast('Logged out', 'neutral');">Logout</button>
+            <button class="btn btn-sm btn-ghost" style="color: #64748b;" onclick="window.medStore.logout(); window.app.switchView('login'); window.app.showToast('Logged out. Returned to Login Gateway.', 'neutral');">Logout</button>
           </div>
         `;
       } else if (role === 'admin') {
         userBadge.innerHTML = `
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="badge badge-success" style="font-size:0.8rem; padding: 4px 10px; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">🔐 Platform Owner</span>
-            <button class="btn btn-sm btn-ghost" style="color: #dc2626;" onclick="window.medStore.logout(); window.app.switchView('landing'); window.app.showToast('Logged out from Owner Admin', 'neutral');">Logout</button>
+            <button class="btn btn-sm btn-ghost" style="color: #dc2626;" onclick="window.medStore.logout(); window.app.switchView('login'); window.app.showToast('Logged out from Owner Admin', 'neutral');">Logout</button>
           </div>
         `;
       } else {
         userBadge.innerHTML = `
-          <button class="btn btn-sm btn-secondary" onclick="window.app.openModal('citizenLoginModal')">👤 Citizen Login</button>
-          <button class="btn btn-sm btn-dark" onclick="window.app.openModal('hospitalLoginModal')">🏥 Hospital</button>
-          <button class="btn btn-sm btn-ghost" onclick="window.app.openModal('adminLoginModal')" style="color: #64748b;" title="Owner Admin Access">🔐 Admin</button>
+          <button class="btn btn-sm btn-primary btn-tactile" onclick="window.app.switchView('login')" style="font-weight: 700;">🔐 Sign In / Gateways</button>
         `;
       }
     }

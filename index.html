@@ -48,16 +48,16 @@
 
         <!-- Dynamic Role Navigation -->
         <nav>
-          <!-- 1. Guest Links (Landing) -->
+          <!-- 1. Guest Links (Authentication-First Gateway) -->
           <ul class="nav-links" id="navRoleGuest">
             <li>
-              <button class="nav-link-btn active" data-view-target="landing">
-                <span>Overview</span>
+              <button class="nav-link-btn active" data-view-target="login">
+                <span>🔐 Sign In / Gateways</span>
               </button>
             </li>
             <li>
               <button class="nav-link-btn" onclick="window.app.openLoginTab('citizen');">
-                <span>👤 Citizen Portal</span>
+                <span>👤 Citizen</span>
               </button>
             </li>
             <li>
@@ -66,13 +66,18 @@
               </button>
             </li>
             <li>
-              <button class="nav-link-btn" data-view-target="blood">
-                <span>🩸 Blood Connect</span>
+              <button class="nav-link-btn" onclick="window.app.openLoginTab('admin');">
+                <span>🔐 Admin</span>
               </button>
             </li>
             <li>
-              <button class="nav-link-btn" data-view-target="analytics">
-                <span>📊 Nagpur Analytics</span>
+              <button class="nav-link-btn" data-view-target="landing">
+                <span>🌐 Public Overview</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="blood">
+                <span>🩸 Blood Grid</span>
               </button>
             </li>
           </ul>
@@ -180,7 +185,7 @@
   <!-- =========================================================================
        3. VIEW 1: LANDING PAGE (PORTAL GATEWAY)
        ========================================================================= -->
-  <main class="view-section" id="view-landing">
+  <main class="view-section" id="view-landing" style="display: none;">
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="container">
@@ -453,15 +458,18 @@
   </main>
 
   <!-- =========================================================================
-       4. VIEW 2: UNIFIED AUTHENTICATION & LOGIN GATEWAY
+       4. VIEW 2: UNIFIED AUTHENTICATION & LOGIN GATEWAY (PRIMARY ON LOAD)
        ========================================================================= -->
-  <main class="view-section" id="view-login" style="display: none; padding: var(--space-8) 0 var(--space-12);">
+  <main class="view-section" id="view-login" style="padding: var(--space-8) 0 var(--space-12);">
     <div class="container" style="max-width: 820px;">
       
-      <!-- Back Link -->
-      <div style="margin-bottom: 20px;">
+      <!-- Top Gateway Banner -->
+      <div style="margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <span class="badge badge-primary" style="font-weight: 700;">
+          🔒 Secure Access: Authentication Gateway
+        </span>
         <button class="btn btn-sm btn-ghost" onclick="window.app.switchView('landing')" style="font-weight: 700; color: #2563eb;">
-          ← Back to Public Network Overview
+          🌐 View Public Emergency Matrix
         </button>
       </div>
 

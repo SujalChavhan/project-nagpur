@@ -97,12 +97,38 @@ function authenticateToken(req, res, next) {
   });
 }
 
+// Middleware: Require Authenticated User (Citizen, Hospital, or Admin)
+function requireAuth(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required. Please sign in to access this emergency healthcare service.'
+    });
+  }
+  next();
+}
+
 // Middleware: Require Admin
 function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
       message: 'Access denied: Admin authorization required. This data is private to the platform owner.'
+    });
+  }
+  next();
+}
+
+// Middleware: Require Hospital EOC Staff or Admin
+function requireHospital(req, res, next) {
+  if (!req.user || (req.user.role !== 'hospital' && req.user.role !== 'admin')) {
+    // If request contains valid hospitalId parameter for demo access, allow operation
+    if (req.params.id && ['NCEH001', 'OCMC002', 'CIEC003'].includes(req.params.id)) {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Hospital staff or administrator authorization required.'
     });
   }
   next();
