@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zero-Mile MedConnect | Emergency Medical Coordination for Nagpur</title>
+  <meta name="description" content="Connecting patients, blood donors, smart ambulances, and hospitals in Nagpur before critical minutes are lost. Featuring Condition-Based Smart Hospital Matching and the 15-Minute Pre-Arrival Protocol.">
+
+  <!-- Design System CSS -->
+  <link rel="stylesheet" href="css/design-system.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- =========================================================================
+       1. PRIMARY NAVIGATION HEADER (Role-Aware)
+       ========================================================================= -->
+  <header class="navbar">
+    <div class="container">
+      <div class="navbar-inner">
+        <!-- Brand Identity -->
+        <a href="#" class="brand-group" data-view-target="landing">
+          <div class="brand-logo-badge" title="Zero-Mile MedConnect">
+            <svg class="brand-logo-svg" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="13" y="4" width="10" height="28" rx="4" fill="white" fill-opacity="0.95"/>
+              <rect x="4" y="13" width="28" height="10" rx="4" fill="white" fill-opacity="0.95"/>
+              <path d="M4 18H9L12.5 10L16.5 26L20 12L23.5 22L27 18H32" stroke="#00f2fe" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="18" cy="18" r="3.2" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+            </svg>
+          </div>
+          <div class="brand-titles">
+            <span class="brand-name">
+              <span class="brand-accent">Zero-Mile</span> MedConnect
+              <span class="location-tag">
+                <span class="location-beacon-dot"></span>Nagpur
+              </span>
+            </span>
+            <span class="brand-tagline">Emergency Medical Coordination Network</span>
+          </div>
+        </a>
+
+        <!-- Dynamic Role Navigation -->
+        <nav>
+          <!-- 1. Guest Links (Landing) -->
+          <ul class="nav-links" id="navRoleGuest">
+            <li>
+              <button class="nav-link-btn active" data-view-target="landing">
+                <span>Overview</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.switchView('citizen');">
+                <span>👤 Citizen Portal</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.medStore.loginAsHospital('NCEH001'); window.app.switchView('hospital');">
+                <span>🏥 Hospital Portal</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="blood">
+                <span>🩸 Blood Connect</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="analytics">
+                <span>📊 Nagpur Analytics</span>
+              </button>
+            </li>
+          </ul>
+
+          <!-- 2. Citizen Links (Citizen Portal) -->
+          <ul class="nav-links" id="navRoleCitizen" style="display: none;">
+            <li>
+              <button class="nav-link-btn active" data-view-target="citizen">
+                <span>👤 Citizen Dashboard</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.openRequestAmbulanceStep1()">
+                <span>🚑 Request Ambulance</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="ambulance">
+                <span class="live-dot-red"></span>
+                <span>Track Ambulance</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="blood">
+                <span>🩸 Blood Connect</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.openModal('donorRegistrationModal')">
+                <span>🩸 Donor Register</span>
+              </button>
+            </li>
+          </ul>
+
+          <!-- 3. Hospital Links (Hospital Portal) -->
+          <ul class="nav-links" id="navRoleHospital" style="display: none;">
+            <li>
+              <button class="nav-link-btn active" data-view-target="hospital">
+                <span>🏥 Emergency Command (EOC)</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="ambulance">
+                <span class="live-dot-red"></span>
+                <span>Ambulance Radar</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" data-view-target="analytics">
+                <span>📊 Analytics</span>
+              </button>
+            </li>
+          </ul>
+
+          <!-- 4. Admin / Owner Links (Exclusive Vault) -->
+          <ul class="nav-links" id="navRoleAdmin" style="display: none;">
+            <li>
+              <button class="nav-link-btn active" data-view-target="admin">
+                <span>🔐 Owner Control Center</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.switchAdminTab('donors')">
+                <span>🩸 All Donors</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.switchAdminTab('ambulance')">
+                <span>🚑 Ambulance Logs</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.switchAdminTab('users')">
+                <span>👤 Users</span>
+              </button>
+            </li>
+            <li>
+              <button class="nav-link-btn" onclick="window.app.switchAdminTab('logs')">
+                <span>📋 Audit Logs</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <!-- Right Side: User Badge & Actions -->
+        <div class="nav-actions">
+          <div id="navUserBadge" style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn btn-sm btn-secondary" onclick="window.app.openModal('citizenLoginModal')">
+              👤 Citizen Login
+            </button>
+            <button class="btn btn-sm btn-dark" onclick="window.app.openModal('hospitalLoginModal')">
+              🏥 Hospital
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="window.app.openModal('adminLoginModal')" style="color: #64748b;" title="Owner / Admin Portal">
+              🔐 Admin
+            </button>
+          </div>
+          <button class="btn btn-sm btn-critical btn-tactile" onclick="window.app.openRequestAmbulanceStep1()">
+            🚨 SOS
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. GLOBAL TOAST CONTAINER
+       ========================================================================= -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- =========================================================================
+       3. VIEW 1: LANDING PAGE (PORTAL GATEWAY)
+       ========================================================================= -->
+  <main class="view-section" id="view-landing">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero-grid">
+          <!-- Left Hero Column -->
+          <div>
+            <div class="hero-tag">
+              <span class="live-dot-green"></span>
+              <span>Central India's First Real-Time Emergency Grid</span>
+            </div>
+            <h1 class="hero-title">
+              Every Minute Matters.<br>
+              <span class="highlight-blue">Zero-Mile</span> Medical Coordination for <span class="highlight-red">Nagpur</span>.
+            </h1>
+            <p class="hero-subtitle">
+              Connect patients, blood donors, ambulances and hospitals before critical minutes are lost. Featuring <strong>Condition-Based Smart Hospital Matching</strong> and the <strong>15-Minute Pre-Arrival Alert Protocol</strong>.
+            </p>
+            <div class="hero-actions">
+              <button class="btn btn-xl btn-critical btn-tactile" onclick="window.app.openRequestAmbulanceStep1()" style="box-shadow: 0 8px 24px rgba(220,38,38,0.35);">
+                🚑 REQUEST AMBULANCE
+              </button>
+              <button class="btn btn-xl btn-secondary btn-tactile" data-view-target="blood" style="border-color: #fca5a5; color: #b91c1c;">
+                🩸 FIND BLOOD
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Hero Column: Emergency Network Flow Visualizer -->
+          <div>
+            <div class="network-card">
+              <div class="network-header">
+                <div>
+                  <h4 style="font-size: 1.1rem; color: var(--navy-900); margin: 0;">Live Zero-Mile Emergency Grid</h4>
+                  <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">Real-time bi-directional telemetry across Nagpur</p>
+                </div>
+                <span class="badge badge-success">
+                  <span class="live-dot-green"></span> Live Grid
+                </span>
+              </div>
+
+              <!-- 4 Connected Nodes -->
+              <div class="network-node-list">
+                <div class="network-node active critical-pulse">
+                  <div class="network-icon-circle" style="color: #dc2626; border: 2px solid #fca5a5;">
+                    👤
+                  </div>
+                  <span class="network-node-title">Patient</span>
+                  <span class="network-node-sub">Dharampeth</span>
+                </div>
+
+                <div class="network-node active">
+                  <div class="network-icon-circle" style="color: #ea580c; border: 2px solid #fed7aa;">
+                    🩸
+                  </div>
+                  <span class="network-node-title">Blood Donor</span>
+                  <span class="network-node-sub">Nearby Verified</span>
+                </div>
+
+                <div class="network-node active critical-pulse">
+                  <div class="network-icon-circle" style="color: #2563eb; border: 2px solid #93c5fd;">
+                    🚑
+                  </div>
+                  <span class="network-node-title">Ambulance</span>
+                  <span class="network-node-sub">ALS Rapid Unit</span>
+                </div>
+
+                <div class="network-node active">
+                  <div class="network-icon-circle" style="color: #059669; border: 2px solid #a7f3d0;">
+                    🏥
+                  </div>
+                  <span class="network-node-title">Hospital</span>
+                  <span class="network-node-sub">3 Partner EOCs</span>
+                </div>
+              </div>
+
+              <!-- Live Telemetry Bar -->
+              <div style="margin-top: 20px; padding: 14px 18px; background: #eff6ff; border-radius: 12px; border: 1px solid #bfdbfe; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="live-dot-red"></span>
+                  <span style="font-size: 0.85rem; font-weight: 800; color: #1e3a8a;">Active Dispatch:</span>
+                  <span style="font-size: 0.85rem; color: #2563eb; font-weight: 600;" id="heroActiveDispatchText">Central Nagpur Corridor Tracking</span>
+                </div>
+                <button class="btn btn-sm btn-primary btn-tactile" data-view-target="ambulance">
+                  View Live Map $\rightarrow$
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nagpur Real-Time Operational KPI Ticker -->
+        <div class="stats-ticker-grid">
+          <div class="stat-ticker-card">
+            <div class="stat-ticker-icon" style="background: #fee2e2; color: #dc2626;">🚑</div>
+            <div>
+              <div class="stat-ticker-num" id="heroActiveAmbulances">18</div>
+              <div class="stat-ticker-label">Active ALS/BLS Ambulances</div>
+            </div>
+          </div>
+
+          <div class="stat-ticker-card">
+            <div class="stat-ticker-icon" style="background: #dbeafe; color: #2563eb;">⚡</div>
+            <div>
+              <div class="stat-ticker-num" id="heroAvgResponseTime">8.4m</div>
+              <div class="stat-ticker-label">Avg Nagpur Dispatch Time</div>
+            </div>
+          </div>
+
+          <div class="stat-ticker-card">
+            <div class="stat-ticker-icon" style="background: #fef3c7; color: #d97706;">🩸</div>
+            <div>
+              <div class="stat-ticker-num" id="heroTotalDonorsCount">1,420+</div>
+              <div class="stat-ticker-label">Registered Donors in Nagpur</div>
+            </div>
+          </div>
+
+          <div class="stat-ticker-card">
+            <div class="stat-ticker-icon" style="background: #d1fae5; color: #059669;">🏥</div>
+            <div>
+              <div class="stat-ticker-num" id="heroIcuAvailable">4</div>
+              <div class="stat-ticker-label">ICU Beds Open (Nagpur Central)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Portal Selection Gateway (Dedicated Options) -->
+    <section style="padding: var(--space-12) 0; border-top: 1px solid var(--border-subtle);">
+      <div class="container">
+        <div style="text-align: center; max-width: 680px; margin: 0 auto var(--space-8);">
+          <span class="badge badge-primary" style="margin-bottom: 8px;">Role-Based Portals</span>
+          <h2 style="font-size: 2.2rem; color: var(--navy-900); margin-bottom: 8px;">
+            Choose Your Dedicated Portal
+          </h2>
+          <p style="font-size: 0.95rem; color: var(--text-muted);">
+            Seamlessly separated experiences for citizens, emergency hospital staff, and platform administrator.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-6);">
+          <!-- 1. CITIZEN PORTAL CARD -->
+          <div class="card card-elevated" style="padding: var(--space-8); border-top: 4px solid var(--primary-500); display: flex; flex-direction: column; justify-content: space-between; background: #ffffff;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                <div style="width: 56px; height: 56px; border-radius: 16px; background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                  👤
+                </div>
+                <div>
+                  <h3 style="font-size: 1.3rem; color: var(--navy-900); margin: 0;">CITIZEN PORTAL</h3>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">For Patients & Donors</span>
+                </div>
+              </div>
+
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; color: var(--text-main); margin-bottom: 24px;">
+                <li>✓ <strong>Request Emergency Ambulance</strong></li>
+                <li>✓ <strong>Condition-Based Hospital Matching</strong></li>
+                <li>✓ <strong>Live GPS Tracking & Route</strong></li>
+                <li>✓ <strong>Blood Connect:</strong> Match with Donors</li>
+                <li>✓ <strong>Register as Nagpur Blood Donor</strong></li>
+              </ul>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-tactile" onclick="window.app.switchView('citizen');">
+                👤 Enter Citizen Portal
+              </button>
+              <button class="btn btn-secondary btn-tactile" onclick="window.app.openModal('citizenRegisterModal')">
+                Register
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. HOSPITAL PORTAL CARD -->
+          <div class="card card-elevated" style="padding: var(--space-8); border-top: 4px solid var(--critical-500); display: flex; flex-direction: column; justify-content: space-between; background: #ffffff;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                <div style="width: 56px; height: 56px; border-radius: 16px; background: #fff1f2; border: 1px solid #fecdd3; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                  🏥
+                </div>
+                <div>
+                  <h3 style="font-size: 1.3rem; color: var(--navy-900); margin: 0;">HOSPITAL PORTAL</h3>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Emergency Command (EOC)</span>
+                </div>
+              </div>
+
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; color: var(--text-main); margin-bottom: 24px;">
+                <li>✓ <strong>15-Minute Pre-Arrival Alert</strong></li>
+                <li>✓ <strong>Multi-Hospital Command Centers</strong></li>
+                <li>✓ <strong>Real-Time Bed & Ventilator Control</strong></li>
+                <li>✓ <strong>One-Click Accept & Prepare Bay</strong></li>
+                <li>✓ <strong>Strict Isolated Inbound Queue</strong></li>
+              </ul>
+            </div>
+
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+              <button class="btn btn-dark btn-tactile" onclick="window.app.openModal('hospitalLoginModal')">
+                🏥 Staff Login
+              </button>
+              <button class="btn btn-secondary btn-tactile" onclick="window.medStore.loginAsHospital('NCEH001'); window.app.switchView('hospital');">
+                Enter EOC
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. OWNER / ADMIN PORTAL CARD -->
+          <div class="card card-elevated" style="padding: var(--space-8); border-top: 4px solid #10b981; display: flex; flex-direction: column; justify-content: space-between; background: #ffffff;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+                <div style="width: 56px; height: 56px; border-radius: 16px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 2rem;">
+                  🔐
+                </div>
+                <div>
+                  <h3 style="font-size: 1.3rem; color: var(--navy-900); margin: 0;">OWNER / ADMIN</h3>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Exclusive Platform Control</span>
+                </div>
+              </div>
+
+              <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 0.88rem; color: var(--text-main); margin-bottom: 24px;">
+                <li>✓ <strong>All Registered Blood Donors</strong> (Full Phone & Details)</li>
+                <li>✓ <strong>All Ambulance & SOS Bookings</strong></li>
+                <li>✓ <strong>All User Accounts & Roles</strong></li>
+                <li>✓ <strong>Live Login & Security Audit Logs</strong></li>
+                <li>✓ <strong>Private to Owner Only</strong> (Protected API)</li>
+              </ul>
+            </div>
+
+            <div>
+              <button class="btn btn-success btn-tactile" style="width: 100%;" onclick="window.app.openModal('adminLoginModal')">
+                🔐 Login as Owner / Admin
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================================
+       4. VIEW 2: CITIZEN DASHBOARD
+       ========================================================================= -->
+  <main class="view-section" id="view-citizen" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      
+      <!-- Citizen Profile Header -->
+      <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-6); border: 1px solid var(--border-subtle); background: #ffffff;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 58px; height: 58px; border-radius: 18px; background: #eff6ff; border: 1px solid #bfdbfe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800;">
+              👤
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <h2 style="font-size: 1.6rem; color: var(--navy-900); margin: 0;" id="citizenDashName">Citizen Portal</h2>
+                <span id="citizenDonorStatusBadge" class="badge badge-neutral">● Standard Citizen</span>
+              </div>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 4px;">
+                📍 Locality: <strong id="citizenDashLocality" style="color: var(--navy-900);">Dharampeth, Nagpur</strong> • Blood Group: <strong id="citizenDashBlood" style="color: #dc2626;">O+</strong>
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-critical btn-tactile" onclick="window.app.openRequestAmbulanceStep1()">
+              🚑 Request Ambulance
+            </button>
+            <button class="btn btn-secondary btn-tactile" onclick="window.app.openModal('donorRegistrationModal')">
+              🩸 Register as Donor
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Emergency Status Widget -->
+      <div id="citizenActiveEmgCard" style="margin-bottom: var(--space-6);"></div>
+
+      <!-- Citizen Quick Action Grid -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); margin-bottom: var(--space-8);">
+        <div class="card" style="padding: var(--space-6); text-align: center; cursor: pointer; transition: all var(--transition-spring);" onclick="window.app.openRequestAmbulanceStep1()">
+          <div style="font-size: 2.4rem; margin-bottom: 10px;">🚑</div>
+          <h4 style="font-size: 1.05rem; color: var(--navy-900); margin-bottom: 4px;">Request Ambulance</h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted);">Smart Condition Matching & ETA</p>
+        </div>
+
+        <div class="card" style="padding: var(--space-6); text-align: center; cursor: pointer; transition: all var(--transition-spring);" data-view-target="ambulance">
+          <div style="font-size: 2.4rem; margin-bottom: 10px;">📍</div>
+          <h4 style="font-size: 1.05rem; color: var(--navy-900); margin-bottom: 4px;">Track Ambulance</h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted);">Live GPS & Telemetry Stream</p>
+        </div>
+
+        <div class="card" style="padding: var(--space-6); text-align: center; cursor: pointer; transition: all var(--transition-spring);" data-view-target="blood">
+          <div style="font-size: 2.4rem; margin-bottom: 10px;">🩸</div>
+          <h4 style="font-size: 1.05rem; color: var(--navy-900); margin-bottom: 4px;">Blood Connect</h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted);">Search Verified Donors & Banks</p>
+        </div>
+
+        <div class="card" style="padding: var(--space-6); text-align: center; cursor: pointer; transition: all var(--transition-spring);" onclick="window.app.openModal('donorRegistrationModal')">
+          <div style="font-size: 2.4rem; margin-bottom: 10px;">❤️</div>
+          <h4 style="font-size: 1.05rem; color: var(--navy-900); margin-bottom: 4px;">Register as Donor</h4>
+          <p style="font-size: 0.78rem; color: var(--text-muted);">Join Nagpur Emergency Network</p>
+        </div>
+      </div>
+
+      <!-- Nagpur Blood Bank Live Status in Citizen View -->
+      <div class="card" style="padding: var(--space-6); background: #ffffff;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Nagpur 24x7 Blood Bank Reserves</h3>
+          <button class="btn btn-sm btn-secondary btn-tactile" data-view-target="blood">Open Full Blood Connect $\rightarrow$</button>
+        </div>
+        <div class="table-responsive">
+          <table class="blood-inventory-table">
+            <thead>
+              <tr>
+                <th>Blood Bank</th>
+                <th>O+</th>
+                <th>B+</th>
+                <th>A+</th>
+                <th>AB+</th>
+                <th>O- (Rare)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="bloodBankInventoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       5. VIEW 3: SMART HOSPITAL RECOMMENDATION SCREEN
+       ========================================================================= -->
+  <main class="view-section" id="view-hospital-match" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      
+      <!-- Recommendation Screen Header -->
+      <div style="margin-bottom: var(--space-6);">
+        <button class="btn btn-sm btn-ghost btn-tactile" onclick="window.app.switchView('citizen')" style="margin-bottom: 8px;">
+          $\leftarrow$ Back to Dashboard
+        </button>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h1 style="font-size: 2.2rem; color: var(--navy-900); margin: 0;">🏥 Find the Best Hospital</h1>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-top: 4px;">
+              Smart triage matching based on patient condition, critical resource availability, and ambulance ETA.
+            </p>
+          </div>
+          <span class="badge badge-primary" style="font-size: 0.85rem; padding: 6px 14px;">
+            ● 3 Nagpur Hospitals Evaluated
+          </span>
+        </div>
+      </div>
+
+      <!-- Condition Summary Banner -->
+      <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-6); background: #eff6ff; border: 1px solid #bfdbfe;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+          <div>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">PATIENT CONDITION & SEVERITY</span>
+            <div style="font-size: 1.4rem; font-weight: 900; color: var(--navy-900); margin-top: 4px;" id="matchPatientCondition">
+              Accident / Trauma (CRITICAL)
+            </div>
+          </div>
+          <div>
+            <span style="font-size: 0.75rem; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">REQUIRED MEDICAL RESOURCES</span>
+            <div class="alert-requirements-pill-row" id="matchRequiredResourcesList" style="margin-top: 6px;">
+              <span class="alert-req-pill">✓ ICU</span>
+              <span class="alert-req-pill">✓ Trauma Unit</span>
+              <span class="alert-req-pill">✓ Emergency Team</span>
+              <span class="alert-req-pill">✓ Ventilator</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendation Cards List (Ranked) -->
+      <div id="hospitalRecommendationsGrid"></div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       6. VIEW 4: AMBULANCE LIVE TRACKING
+       ========================================================================= -->
+  <main class="view-section" id="view-ambulance" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      
+      <!-- Page Header -->
+      <div style="margin-bottom: var(--space-5);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 50px; height: 50px; border-radius: 16px; background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.7rem;">
+              🚑
+            </div>
+            <div>
+              <h1 style="font-size: 2rem; color: var(--navy-900); margin: 0;">Track Your Ambulance</h1>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+                Live GPS location, route, and driver contact for active emergency dispatch in Nagpur
+              </p>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="badge badge-critical animate-critical-flash" id="citizenAmbLiveBadge">● LIVE TRACKING</span>
+            <span class="badge badge-neutral" style="font-size: 0.75rem;">Active Grid Telemetry</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. 🗺️ LARGE LIVE NAGPUR MAP -->
+      <div class="card card-elevated" style="padding: 0; overflow: hidden; margin-bottom: var(--space-6); background: #ffffff;">
+        <div style="padding: 14px 24px; background: #f8fafc; color: var(--navy-900); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-subtle);">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span class="live-dot-green"></span>
+            <strong style="font-size: 0.95rem; color: var(--navy-900);">Live Ambulance Tracking — Nagpur</strong>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">(Zero Mile Corridor, Maharashtra)</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted);">
+              <span>📍 Pickup</span>
+              <span>$\rightarrow$</span>
+              <span>🚑 Ambulance</span>
+              <span>$\rightarrow$</span>
+              <span>🏥 Hospital</span>
+            </div>
+            <button class="btn btn-sm btn-ghost btn-tactile" style="color: var(--primary-700); padding: 4px 12px; border: 1px solid var(--border-medium);" onclick="if(window.nagpurMap) window.nagpurMap.fitFullRoute();" title="Recenter full route">
+              ⛶ Fit Route
+            </button>
+          </div>
+        </div>
+        
+        <!-- Large Responsive Leaflet Map -->
+        <div id="nagpurEmergencyMap" style="width: 100%; height: 500px; background: #f1f5f9;"></div>
+      </div>
+
+      <!-- 3 Detail Cards Grid: Locations, Ambulance Info, Driver Details -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5);">
+        
+        <!-- 2. 📍 LOCATION / ADDRESS DETAILS -->
+        <div class="card" style="padding: var(--space-6); border-top: 4px solid var(--primary-500); background: #ffffff;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span style="font-size: 1.4rem;">📍</span>
+            <h3 style="font-size: 1.2rem; color: var(--navy-900); margin: 0;">Location Details</h3>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase; display: block; margin-bottom: 2px;">
+                📍 Pickup Location
+              </span>
+              <strong style="font-size: 1rem; color: var(--navy-900);" id="trackingPickupLoc">
+                Dharampeth, Nagpur
+              </strong>
+            </div>
+
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase; display: block; margin-bottom: 2px;">
+                🚑 Current Ambulance Location
+              </span>
+              <strong style="font-size: 1rem; color: #2563eb;" id="trackingCurrentAmbLoc">
+                Wardha Road / Civil Lines, Nagpur
+              </strong>
+            </div>
+
+            <div>
+              <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase; display: block; margin-bottom: 2px;">
+                🏥 Destination Hospital
+              </span>
+              <strong style="font-size: 1rem; color: #059669;" id="trackingTargetHospName">
+                Nagpur Central Emergency Hospital
+              </strong>
+              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;" id="trackingTargetHospLoc">
+                Civil Lines, Nagpur
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 🚑 AMBULANCE CURRENT DETAILS -->
+        <div class="card" style="padding: var(--space-6); border-top: 4px solid var(--critical-500); background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.4rem;">🚑</span>
+              <h3 style="font-size: 1.2rem; color: var(--navy-900); margin: 0;">Ambulance Details</h3>
+            </div>
+            <span id="citizenAmbStatusBadge" class="badge badge-success">🟢 En Route</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Ambulance ID:</span>
+              <strong class="font-mono" style="font-size: 1rem; color: var(--navy-900);" id="trackingAmbCode">ZM-1024</strong>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Ambulance Type:</span>
+              <span style="font-size: 0.9rem; font-weight: 700; color: var(--navy-900);" id="trackingAmbType">Advanced Life Support (ALS)</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Current Status:</span>
+              <span style="font-size: 0.9rem; font-weight: 800; color: #059669;" id="trackingAmbStatusText">🟢 En Route</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Current Speed:</span>
+              <span style="font-size: 0.9rem; font-weight: 800; color: var(--navy-900);" id="trackingAmbSpeed">62 km/h</span>
+            </div>
+
+            <hr style="margin: 4px 0; border: none; border-top: 1px solid var(--border-subtle);">
+
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <span style="font-size: 0.72rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase; display: block;">ESTIMATED ARRIVAL</span>
+                <span style="font-size: 0.78rem; color: var(--text-muted);" id="trackingEtaSub">minutes remaining</span>
+              </div>
+              <div class="font-mono" id="trackingEtaClock" style="font-size: 2.2rem; font-weight: 900; color: #dc2626; line-height: 1;">
+                14:52
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 👨✈️ AMBULANCE DRIVER CONTACT DETAILS -->
+        <div class="card" style="padding: var(--space-6); border-top: 4px solid var(--success-500); display: flex; flex-direction: column; justify-content: space-between; background: #ffffff;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <span style="font-size: 1.4rem;">👨✈️</span>
+              <h3 style="font-size: 1.2rem; color: var(--navy-900); margin: 0;">Driver Details</h3>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 14px;">
+              <div style="width: 52px; height: 52px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; border: 1px solid #bfdbfe;">
+                👨✈️
+              </div>
+              <div>
+                <strong style="font-size: 1.1rem; color: var(--navy-900); display: block;" id="trackingDriverName">
+                  Amit Sharma
+                </strong>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">
+                  Certified Emergency Vehicle Operator (4.9★)
+                </span>
+              </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 12px 16px; border-radius: 12px; border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+              <span style="font-size: 0.72rem; color: var(--text-subtle); font-weight: 800; text-transform: uppercase; display: block;">DIRECT PHONE NUMBER</span>
+              <strong class="font-mono" style="font-size: 1.05rem; color: #2563eb;" id="trackingDriverPhone">
+                +91 98221 44550
+              </strong>
+            </div>
+          </div>
+
+          <div>
+            <a id="trackingDriverPhoneBtn" href="tel:+919822144550" class="btn btn-xl btn-success btn-tactile" style="width: 100%; text-align: center; font-weight: 800; font-size: 1.05rem; text-decoration: none;">
+              📞 CALL DRIVER
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       7. VIEW 5: HOSPITAL EMERGENCY COMMAND CENTER (EOC)
+       ========================================================================= -->
+  <main class="view-section" id="view-hospital" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      
+      <!-- 🚨 Hospital Portal ONLY: 15-Minute Pre-Arrival Alert with [ACCEPT & PREPARE] -->
+      <div id="eocHospitalAlertContainer"></div>
+
+      <!-- EOC Title Header with Hospital Switcher -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-4);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="live-dot-green"></span>
+            <span style="font-size: 0.82rem; font-weight: 800; color: #2563eb; text-transform: uppercase;" id="eocHospitalCodeBadge">
+              Nagpur Central Emergency Hospital (NCEH001)
+            </span>
+          </div>
+          <h1 style="font-size: 2.1rem; color: var(--navy-900); margin: 0;" id="eocHospitalTitle">Hospital Emergency Command Center</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+            Real-time emergency triage board, incoming GPS telemetry, and clinical resource orchestration.
+          </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; background: #ffffff; padding: 8px 16px; border-radius: 14px; border: 1px solid var(--border-medium); box-shadow: var(--shadow-sm);">
+          <label style="font-size: 0.78rem; font-weight: 800; color: var(--navy-900);">Active Hospital:</label>
+          <select id="eocHospitalSwitcher" style="border: none; background: transparent; font-weight: 700; color: var(--navy-900); outline: none; cursor: pointer;">
+            <option value="NCEH001">Nagpur Central Emergency Hospital (NCEH001)</option>
+            <option value="OCMC002">Orange City Medical Center (OCMC002)</option>
+            <option value="CIEC003">Central India Emergency Care (CIEC003)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Top EOC KPI Metric Cards -->
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-4); margin-bottom: var(--space-6);">
+        <div class="card" style="padding: var(--space-5); border-left: 4px solid #2563eb; background: #ffffff;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">Incoming Patients</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: var(--navy-900); margin-top: 4px;" id="eocIncomingVal">0</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Active GPS tracks</div>
+        </div>
+
+        <div class="card" style="padding: var(--space-5); border-left: 4px solid #dc2626; background: #ffffff;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: #dc2626; text-transform: uppercase;">Critical Alerts</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #dc2626; margin-top: 4px;" id="eocCriticalVal">0</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">15m Alert Active</div>
+        </div>
+
+        <div class="card" style="padding: var(--space-5); border-left: 4px solid #059669; background: #ffffff;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">ICU Beds Free</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #059669; margin-top: 4px;" id="eocIcuVal">4</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">24 Total Capacity</div>
+        </div>
+
+        <div class="card" style="padding: var(--space-5); border-left: 4px solid #2563eb; background: #ffffff;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">Ventilators</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #2563eb; margin-top: 4px;" id="eocVentVal">3</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Available Ready</div>
+        </div>
+
+        <div class="card" style="padding: var(--space-5); border-left: 4px solid #059669; background: #ffffff;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">Blood Reserve</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #059669; margin-top: 4px;" id="eocBloodVal">94%</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">All Groups Ready</div>
+        </div>
+      </div>
+
+      <!-- Two-Column EOC Layout: Live Inbound Queue + Resource Meters -->
+      <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: var(--space-6);">
+        
+        <!-- Left: Live Inbound Patient Queue (Isolated for this Hospital) -->
+        <div>
+          <div class="card" style="padding: var(--space-6); background: #ffffff;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-5);">
+              <div>
+                <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">LIVE INCOMING PATIENTS</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Priority-tiered ambulance dispatches assigned to THIS hospital</p>
+              </div>
+              <span class="badge badge-primary">Isolated Queue</span>
+            </div>
+
+            <!-- Inbound Cards List -->
+            <div id="hospitalInboundQueue"></div>
+          </div>
+        </div>
+
+        <!-- Right: Live Hospital Resource Status -->
+        <div>
+          <div class="card" style="padding: var(--space-6); background: #ffffff;">
+            <div style="margin-bottom: var(--space-5);">
+              <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">RESOURCE STATUS</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Real-time bed, ventilator and trauma unit allocation</p>
+            </div>
+
+            <!-- ICU Capacity Progress Unit -->
+            <div style="margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: var(--navy-900); font-weight: 700; font-size: 0.9rem;">ICU Beds</span>
+                <span id="icuAvailableLabel" class="font-mono" style="color: #059669; font-weight: 700;">4 available</span>
+              </div>
+              <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; margin-bottom: 12px;">
+                <div id="icuBarFill" style="width: 17%; height: 100%; background-color: #10b981; border-radius: 9999px;"></div>
+              </div>
+              <div class="resource-matrix-grid" id="icuSlotsGrid"></div>
+            </div>
+
+            <!-- Ventilator Capacity Progress Unit -->
+            <div style="margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: var(--navy-900); font-weight: 700; font-size: 0.9rem;">Ventilators</span>
+                <span id="ventAvailableLabel" class="font-mono" style="color: #2563eb; font-weight: 700;">3 available</span>
+              </div>
+              <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+                <div id="ventBarFill" style="width: 17%; height: 100%; background-color: #2563eb; border-radius: 9999px;"></div>
+              </div>
+            </div>
+
+            <!-- Trauma Units Progress Unit -->
+            <div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                <span style="color: var(--navy-900); font-weight: 700; font-size: 0.9rem;">Trauma Resuscitation Units</span>
+                <span id="traumaAvailableLabel" class="font-mono" style="color: #d97706; font-weight: 700;">2 available</span>
+              </div>
+              <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+                <div id="traumaBarFill" style="width: 33%; height: 100%; background-color: #f59e0b; border-radius: 9999px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       8. VIEW 6: BLOOD CONNECT
+       ========================================================================= -->
+  <main class="view-section" id="view-blood" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-4);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="live-dot-red"></span>
+            <span style="font-size: 0.82rem; font-weight: 800; color: #dc2626; text-transform: uppercase;">
+              Nagpur Emergency Blood Grid
+            </span>
+          </div>
+          <h1 style="font-size: 2.1rem; color: var(--navy-900); margin: 0;">Blood Connect: Smart Donor Matching</h1>
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+            Proximity-based matching connecting patients with verified donors in Nagpur within minutes.
+          </p>
+        </div>
+
+        <button class="btn btn-primary btn-tactile" onclick="window.app.openModal('donorRegistrationModal')">
+          + Register as Donor
+        </button>
+      </div>
+
+      <!-- Blood Search Panel -->
+      <div class="card" style="background: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-2xl); padding: var(--space-6); margin-bottom: var(--space-6);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-4);">
+          <span style="font-size: 0.95rem; font-weight: 800; color: var(--navy-900);">Select Required Blood Group:</span>
+          <span style="font-size: 0.82rem; color: var(--text-muted);">Showing verified donors within 5 km of Nagpur central corridor</span>
+        </div>
+
+        <div class="blood-type-filter-cluster" style="margin-bottom: var(--space-4);">
+          <button class="blood-type-btn active btn-tactile" data-blood-type="O+">O+</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="B+">B+</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="A+">A+</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="AB+">AB+</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="O-">O-</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="B-">B-</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="A-">A-</button>
+          <button class="blood-type-btn btn-tactile" data-blood-type="ALL">All</button>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 12px;">
+          <h4 id="matchingDonorsCount" style="font-size: 1.05rem; color: var(--navy-900);">Loading Donors...</h4>
+          <span style="font-size: 0.78rem; color: #059669; font-weight: 700;">🔒 Privacy Masked (Locality Level Only)</span>
+        </div>
+      </div>
+
+      <!-- Matching Donors Grid -->
+      <div class="donors-grid" id="donorsListGrid"></div>
+
+      <!-- Active Blood Requests -->
+      <div style="margin-top: var(--space-8);">
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin-bottom: 14px;">Active Emergency Blood Requests in Nagpur</h3>
+          <div id="activeBloodRequestsList"></div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       9. VIEW 7: NAGPUR ANALYTICS
+       ========================================================================= -->
+  <main class="view-section" id="view-analytics" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      <div style="margin-bottom: var(--space-6);">
+        <h1 style="font-size: 2.1rem; color: var(--navy-900); margin: 0;">Nagpur Emergency Analytics</h1>
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+          Operational intelligence: response times, severity ratios, and blood reserve readiness across Nagpur.
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6);">
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <h3 style="font-size: 1.15rem; color: var(--navy-900); margin-bottom: 4px;">Nagpur Response Times by Locality</h3>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px;">Zero-Mile MedConnect vs Conventional Baseline</p>
+          <div style="height: 280px; position: relative;">
+            <canvas id="zoneResponseChart"></canvas>
+          </div>
+        </div>
+
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <h3 style="font-size: 1.15rem; color: var(--navy-900); margin-bottom: 4px;">Emergency Request Severity Distribution</h3>
+          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px;">Breakdown of emergency dispatches in Nagpur</p>
+          <div style="height: 280px; position: relative;">
+            <canvas id="severityChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: var(--space-6); padding: var(--space-6); background: #ffffff;">
+        <h3 style="font-size: 1.15rem; color: var(--navy-900); margin-bottom: 4px;">Blood Reserve vs Active Emergency Demand</h3>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px;">Current units available across Nagpur blood banks compared to ongoing hospital requests</p>
+        <div style="height: 300px; position: relative;">
+          <canvas id="bloodSupplyChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       10. VIEW 8: OWNER & ADMIN CONTROL CENTER (RESTRICTED DATA VAULT)
+       ========================================================================= -->
+  <main class="view-section" id="view-admin" style="display: none; padding: var(--space-6) 0 var(--space-12);">
+    <div class="container">
+      
+      <!-- Admin Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: var(--space-6);">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="live-dot-green"></span>
+            <span style="font-size: 0.82rem; font-weight: 800; color: #059669; text-transform: uppercase;">
+              PLATFORM OWNER SECURE ACCESS
+            </span>
+          </div>
+          <h1 style="font-size: 2.2rem; color: var(--navy-900); margin: 0;">🔐 Owner Master Control Center</h1>
+          <p style="font-size: 0.92rem; color: var(--text-muted); margin-top: 4px;">
+            Confidential central repository for all registered blood donors, ambulance SOS dispatches, user credentials, and login audit logs.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="btn btn-secondary btn-sm btn-tactile" onclick="window.medStore.refreshAdminDashboard(); window.app.showToast('Refreshing live admin data...', 'primary');">
+            🔄 Refresh Live Data
+          </button>
+          <button class="btn btn-critical btn-sm btn-tactile" onclick="window.medStore.logout(); window.app.switchView('landing'); window.app.showToast('Logged out of Admin Portal', 'neutral');">
+            🚪 Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Top Stats KPI Cards -->
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-4); margin-bottom: var(--space-6);">
+        <div class="admin-kpi-card" style="border-left: 4px solid #2563eb;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">REGISTERED USERS</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: var(--navy-900); margin-top: 4px;" id="adminStatUsers">0</div>
+          <div style="font-size: 0.75rem; color: #059669; margin-top: 2px;">● Live Accounts</div>
+        </div>
+
+        <div class="admin-kpi-card" style="border-left: 4px solid #dc2626;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">BLOOD DONORS</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #dc2626; margin-top: 4px;" id="adminStatDonors">0</div>
+          <div style="font-size: 0.75rem; color: #dc2626; margin-top: 2px;">● Full Contact Info</div>
+        </div>
+
+        <div class="admin-kpi-card" style="border-left: 4px solid #d97706;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">AMBULANCE SOS</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #d97706; margin-top: 4px;" id="adminStatAmbulances">0</div>
+          <div style="font-size: 0.75rem; color: #d97706; margin-top: 2px;">● Total Dispatches</div>
+        </div>
+
+        <div class="admin-kpi-card" style="border-left: 4px solid #7c3aed;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">BLOOD REQUESTS</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #7c3aed; margin-top: 4px;" id="adminStatBloodReqs">0</div>
+          <div style="font-size: 0.75rem; color: #7c3aed; margin-top: 2px;">● Emergency Needs</div>
+        </div>
+
+        <div class="admin-kpi-card" style="border-left: 4px solid #059669;">
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--text-subtle); text-transform: uppercase;">SECURITY LOGS</div>
+          <div class="font-mono" style="font-size: 2rem; font-weight: 900; color: #059669; margin-top: 4px;" id="adminStatLogins">0</div>
+          <div style="font-size: 0.75rem; color: #059669; margin-top: 2px;">● Recorded Events</div>
+        </div>
+      </div>
+
+      <!-- Admin Tab Switcher -->
+      <div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-subtle); margin-bottom: var(--space-6); padding-bottom: 8px;">
+        <button class="btn btn-sm btn-primary active btn-tactile" id="adminTabBtn-donors" onclick="window.app.switchAdminTab('donors')">
+          🩸 Registered Blood Donors (<span id="adminTabBadgeDonors">0</span>)
+        </button>
+        <button class="btn btn-sm btn-secondary btn-tactile" id="adminTabBtn-ambulance" onclick="window.app.switchAdminTab('ambulance')">
+          🚑 Ambulance Emergency Bookings (<span id="adminTabBadgeAmb">0</span>)
+        </button>
+        <button class="btn btn-sm btn-secondary btn-tactile" id="adminTabBtn-users" onclick="window.app.switchAdminTab('users')">
+          👤 Registered User Accounts (<span id="adminTabBadgeUsers">0</span>)
+        </button>
+        <button class="btn btn-sm btn-secondary btn-tactile" id="adminTabBtn-logs" onclick="window.app.switchAdminTab('logs')">
+          🔒 Login & Security Audit Logs (<span id="adminTabBadgeLogs">0</span>)
+        </button>
+      </div>
+
+      <!-- 1. TAB: DONORS -->
+      <div id="adminTabContent-donors" class="admin-tab-pane">
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">All Registered Nagpur Blood Donors</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Owner Exclusive: Full unmasked phone numbers and locality data for emergency coordination.</p>
+            </div>
+            <input type="text" id="adminSearchDonors" placeholder="Search donors by name, blood, locality..." class="form-control" style="width: 320px; font-size: 0.85rem;" oninput="window.app.filterAdminDonors(this.value)">
+          </div>
+
+          <div class="table-responsive">
+            <table class="blood-inventory-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>Donor ID</th>
+                  <th>Full Name</th>
+                  <th>Blood Group</th>
+                  <th>Direct Contact (Real Phone)</th>
+                  <th>Locality in Nagpur</th>
+                  <th>Total Donations</th>
+                  <th>Registered Date</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="adminDonorsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. TAB: AMBULANCE REQUESTS -->
+      <div id="adminTabContent-ambulance" class="admin-tab-pane" style="display: none;">
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">All Emergency Ambulance & SOS Bookings</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Real-time log of every patient triage, hospital assignment, and ambulance telemetry.</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="blood-inventory-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>Emergency ID</th>
+                  <th>Patient Name</th>
+                  <th>Age</th>
+                  <th>Condition</th>
+                  <th>Severity</th>
+                  <th>Pickup Locality</th>
+                  <th>Assigned Hospital</th>
+                  <th>Ambulance</th>
+                  <th>ETA</th>
+                  <th>Status</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="adminAmbulanceTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TAB: REGISTERED USERS -->
+      <div id="adminTabContent-users" class="admin-tab-pane" style="display: none;">
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">All Registered User Accounts</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Comprehensive list of citizen accounts, hospital staff accounts, and administrator credentials.</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="blood-inventory-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Name</th>
+                  <th>Username / Contact</th>
+                  <th>Role</th>
+                  <th>Locality</th>
+                  <th>Blood Group</th>
+                  <th>Donor Flag</th>
+                  <th>Registered At</th>
+                  <th>Last Login</th>
+                </tr>
+              </thead>
+              <tbody id="adminUsersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. TAB: AUDIT & LOGIN LOGS -->
+      <div id="adminTabContent-logs" class="admin-tab-pane" style="display: none;">
+        <div class="card" style="padding: var(--space-6); background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <div>
+              <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">System Security & Login Audit Trail</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Chronological trail of logins, registrations, and administrative access.</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="blood-inventory-table" style="width: 100%;">
+              <thead>
+                <tr>
+                  <th>Log ID</th>
+                  <th>User / Username</th>
+                  <th>Role</th>
+                  <th>Event Status</th>
+                  <th>IP Address</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="adminLogsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       11. MODAL: CITIZEN LOGIN
+       ========================================================================= -->
+  <div class="modal-backdrop" id="citizenLoginModal">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">👤</span>
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Citizen Portal Login</h3>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="citizenLoginForm">
+        <div class="card-body">
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+            Access emergency ambulance requests, live tracking, and blood donor coordination.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Full Name / Username</label>
+            <input type="text" id="loginCitizenName" class="form-control" placeholder="Enter your full name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" id="loginCitizenPhone" class="form-control" placeholder="e.g. +91 98221 00000" required>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: space-between;">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="window.app.closeAllModals(); window.app.openModal('citizenRegisterModal');">
+            Create Account
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+            <button type="submit" class="btn btn-primary btn-tactile">
+              Login to Citizen Portal
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       12. MODAL: CREATE CITIZEN ACCOUNT
+       ========================================================================= -->
+  <div class="modal-backdrop" id="citizenRegisterModal">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">📝</span>
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Create Citizen Account</h3>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="citizenRegisterForm">
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="regCitizenName" class="form-control" placeholder="e.g. Rahul Patil" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" id="regCitizenPhone" class="form-control" placeholder="+91 98220 00000" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Blood Group</label>
+              <select id="regCitizenBlood" class="form-control">
+                <option value="O+">O Positive (O+)</option>
+                <option value="B+">B Positive (B+)</option>
+                <option value="A+">A Positive (A+)</option>
+                <option value="AB+">AB Positive (AB+)</option>
+                <option value="O-">O Negative (O-)</option>
+                <option value="B-">B Negative (B-)</option>
+                <option value="A-">A Negative (A-)</option>
+                <option value="AB-">AB Negative (AB-)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Locality in Nagpur</label>
+            <select id="regCitizenLocality" class="form-control">
+              <option value="Dharampeth">Dharampeth</option>
+              <option value="Ramdaspeth">Ramdaspeth</option>
+              <option value="Sitabuldi">Sitabuldi</option>
+              <option value="Dhantoli">Dhantoli</option>
+              <option value="Wardha Road">Wardha Road</option>
+              <option value="Shankar Nagar">Shankar Nagar</option>
+              <option value="Trimurti Nagar">Trimurti Nagar</option>
+              <option value="IT Park">IT Park (Parsodi)</option>
+              <option value="Civil Lines">Civil Lines</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary btn-tactile">
+            Create Account & Enter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       13. MODAL: HOSPITAL LOGIN
+       ========================================================================= -->
+  <div class="modal-backdrop" id="hospitalLoginModal">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">🏥</span>
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Hospital Staff Login</h3>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="hospitalLoginForm">
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Hospital ID</label>
+            <select id="loginHospitalId" class="form-control">
+              <option value="NCEH001">NCEH001 — Nagpur Central Emergency Hospital</option>
+              <option value="OCMC002">OCMC002 — Orange City Medical Center</option>
+              <option value="CIEC003">CIEC003 — Central India Emergency Care</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password / Staff PIN</label>
+            <input type="password" id="loginHospitalPassword" class="form-control" value="hospital123" required>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-dark btn-tactile">
+            Login to Command Center
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       14. MODAL: OWNER / ADMIN LOGIN
+       ========================================================================= -->
+  <div class="modal-backdrop" id="adminLoginModal">
+    <div class="modal-dialog">
+      <div class="card-header" style="background: #0f172a; color: #ffffff;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">🔐</span>
+          <div>
+            <h3 style="font-size: 1.25rem; color: #ffffff; margin: 0;">Owner / Admin Access</h3>
+            <span style="font-size: 0.75rem; color: #94a3b8;">Zero-Mile MedConnect Confidential Control Center</span>
+          </div>
+        </div>
+        <button class="btn-icon btn-ghost" style="color: #ffffff;" data-close-modal>✕</button>
+      </div>
+      <form id="adminLoginForm">
+        <div class="card-body">
+          <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 16px;">
+            Enter administrator credentials to view all registered blood donors, ambulance dispatches, and login records.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Admin Username</label>
+            <input type="text" id="loginAdminUsername" class="form-control" value="admin" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Admin Password</label>
+            <input type="password" id="loginAdminPassword" class="form-control" value="admin123" required>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-success btn-tactile">
+            Unlock Owner Dashboard
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       15. MODAL: CONDITION-BASED AMBULANCE REQUEST (STEP 1)
+       ========================================================================= -->
+  <div class="modal-backdrop" id="requestAmbulanceModal">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.6rem;">🚑</span>
+          <div>
+            <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Request Emergency Ambulance</h3>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Step 1: Patient Condition & Triage</span>
+          </div>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="requestAmbulanceForm">
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Patient Name</label>
+            <input type="text" id="reqAmbPatientName" class="form-control" placeholder="Enter patient's full name" required>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Patient Age</label>
+              <input type="number" id="reqAmbAge" class="form-control" placeholder="e.g. 45" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Emergency Severity</label>
+              <select id="reqAmbSeverity" class="form-control">
+                <option value="CRITICAL">Critical (Life Threatening)</option>
+                <option value="URGENT">Urgent (Severe Condition)</option>
+                <option value="NORMAL">Normal / Stable</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Patient Condition -->
+          <div class="form-group">
+            <label class="form-label" style="color: #dc2626; font-size: 0.95rem; font-weight: 800;">
+              What is the patient's condition?
+            </label>
+            <select id="reqAmbCondition" class="form-control" style="border: 2px solid #fca5a5; font-weight: 700; color: var(--navy-900);">
+              <option value="Accident / Trauma">🚗 Accident / Trauma</option>
+              <option value="Chest Pain">❤️ Chest Pain</option>
+              <option value="Breathing Difficulty">🫁 Breathing Difficulty</option>
+              <option value="Stroke Symptoms">🧠 Stroke Symptoms</option>
+              <option value="Severe Bleeding">🩸 Severe Bleeding</option>
+              <option value="Burn Injury">🔥 Burn Injury</option>
+              <option value="Other Emergency">⚠️ Other Emergency</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pickup Locality in Nagpur</label>
+            <select id="reqAmbLocality" class="form-control">
+              <option value="Dharampeth">Dharampeth (West High Court Rd)</option>
+              <option value="Ramdaspeth">Ramdaspeth</option>
+              <option value="Sitabuldi">Sitabuldi</option>
+              <option value="Dhantoli">Dhantoli</option>
+              <option value="Wardha Road">Wardha Road Corridor</option>
+              <option value="Shankar Nagar">Shankar Nagar</option>
+              <option value="Trimurti Nagar">Trimurti Nagar</option>
+              <option value="IT Park">IT Park (Parsodi)</option>
+              <option value="Civil Lines">Civil Lines</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-critical btn-tactile">
+            🏥 Find Best Matching Hospital $\rightarrow$
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       16. MODAL: REGISTER AS BLOOD DONOR
+       ========================================================================= -->
+  <div class="modal-backdrop" id="donorRegistrationModal">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.6rem;">🩸</span>
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Register as Nagpur Blood Donor</h3>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="donorRegistrationForm">
+        <div class="card-body">
+          <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 16px;">
+            Join Zero-Mile's emergency donor registry. Your contact is saved securely and managed for Nagpur emergencies.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input type="text" id="donorRegName" class="form-control" placeholder="Enter your full name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input type="tel" id="donorRegPhone" class="form-control" placeholder="+91 98220 00000" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Blood Group</label>
+              <select id="donorRegBlood" class="form-control">
+                <option value="B+">B Positive (B+)</option>
+                <option value="O+">O Positive (O+)</option>
+                <option value="A+">A Positive (A+)</option>
+                <option value="AB+">AB Positive (AB+)</option>
+                <option value="O-">O Negative (O-)</option>
+                <option value="B-">B Negative (B-)</option>
+                <option value="A-">A Negative (A-)</option>
+                <option value="AB-">AB Negative (AB-)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Previous Donations</label>
+              <input type="number" id="donorRegCount" class="form-control" value="0" min="0">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Locality in Nagpur</label>
+            <select id="donorRegLocality" class="form-control">
+              <option value="Dharampeth">Dharampeth</option>
+              <option value="Ramdaspeth">Ramdaspeth</option>
+              <option value="Sitabuldi">Sitabuldi</option>
+              <option value="Dhantoli">Dhantoli</option>
+              <option value="Wardha Road">Wardha Road</option>
+              <option value="Civil Lines">Civil Lines</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary btn-tactile">
+            Complete Donor Registration
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       17. MODAL: CONTACT DONOR SMS DISPATCH
+       ========================================================================= -->
+  <div class="modal-backdrop" id="contactDonorModal">
+    <div class="modal-dialog">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.6rem;">📲</span>
+          <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Instant Donor Emergency Dispatch</h3>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="contactDonorForm">
+        <input type="hidden" id="contactDonorId">
+        <div class="card-body">
+          <div style="padding: 16px; background: #ecfdf5; border-radius: 14px; border: 1px solid #a7f3d0; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <strong id="contactDonorNameModal" style="font-size: 1.2rem; color: #065f46;">Verified Donor</strong>
+              <span id="contactDonorBloodModal" class="badge badge-critical" style="font-size: 0.95rem;">O+</span>
+            </div>
+            <p id="contactDonorLocalityModal" style="font-size: 0.88rem; color: #047857; margin: 0;">
+              Nagpur Locality
+            </p>
+          </div>
+
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.6;">
+            Zero-Mile MedConnect will send an automated high-priority SMS and WhatsApp alert to this donor with GPS hospital routing and volunteer rider coordination.
+          </p>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-critical btn-tactile">
+            CONFIRM & SEND SMS DISPATCH
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Application Scripts -->
+  <script src="js/data/nagpur-data.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
+

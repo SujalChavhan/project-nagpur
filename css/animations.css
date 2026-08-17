@@ -1,0 +1,156 @@
+/* ==========================================================================
+   ZERO-MILE MEDCONNECT — ANIMATIONS & MICRO-INTERACTIONS
+   ========================================================================== */
+
+/* Fade In Up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Emergency Pulse & Beacon */
+@keyframes emergencyStrobe {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    border-color: #ef4444;
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(239, 68, 68, 0);
+    border-color: #b91c1c;
+  }
+}
+
+.animate-emergency-pulse {
+  animation: emergencyStrobe 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes criticalBadgeFlash {
+  0%, 100% {
+    background-color: #dc2626;
+    color: #ffffff;
+  }
+  50% {
+    background-color: #991b1b;
+    color: #fee2e2;
+  }
+}
+
+.animate-critical-flash {
+  animation: criticalBadgeFlash 1.2s infinite ease-in-out;
+}
+
+/* Subtle Live Dot Ping */
+@keyframes pingDot {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.live-dot-green {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success-500);
+  animation: pingDot 2s infinite cubic-bezier(0, 0, 0.2, 1);
+}
+
+.live-dot-red {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--critical-500);
+  animation: emergencyStrobe 1.5s infinite ease-out;
+}
+
+/* Animated SVG Flow Dash (Patient -> Donor -> Ambulance -> Hospital) */
+@keyframes dashFlow {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.network-flow-line {
+  stroke: var(--primary-500);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 6;
+  animation: dashFlow 1.5s linear infinite;
+}
+
+.network-flow-line-critical {
+  stroke: var(--critical-500);
+  stroke-width: 3;
+  stroke-dasharray: 6 6;
+  animation: dashFlow 0.9s linear infinite;
+}
+
+/* ECG Waveform Pulse */
+@keyframes ecgScan {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.ecg-grid {
+  background-size: 16px 16px;
+  background-image: 
+    linear-gradient(to right, rgba(6, 182, 212, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 1px, transparent 1px);
+}
+
+/* Radar Scan for Map Tracking */
+@keyframes radarScan {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-sweep {
+  animation: radarScan 4s linear infinite;
+  transform-origin: center center;
+}
+
+/* 15-Minute Alert Inset Shake / Attention Glow */
+@keyframes alertCardPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+  }
+  50% {
+    transform: scale(1.01);
+    box-shadow: 0 0 25px 4px rgba(220, 38, 38, 0.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-alert-attention {
+  animation: alertCardPulse 2s infinite ease-in-out;
+}
