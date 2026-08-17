@@ -204,11 +204,13 @@ function getSeedData() {
         locality: 'Civil Lines / Central Nagpur',
         emergencyContact: '+91 712 255 1001',
         icuBedsTotal: 24,
-        icuBedsAvailable: 4,
+        icuBedsAvailable: 6,
+        normalBedsTotal: 50,
+        normalBedsAvailable: 18,
         ventilatorsTotal: 18,
-        ventilatorsAvailable: 3,
+        ventilatorsAvailable: 5,
         traumaUnitsTotal: 6,
-        traumaUnitsAvailable: 2,
+        traumaUnitsAvailable: 3,
         emergencyTeamStatus: 'Available (Team Alpha Ready)',
         bloodReservePercentage: 94,
         inboundQueue: []
@@ -220,11 +222,13 @@ function getSeedData() {
         locality: 'Khamla / Ring Road',
         emergencyContact: '+91 712 228 3200',
         icuBedsTotal: 20,
-        icuBedsAvailable: 2,
+        icuBedsAvailable: 4,
+        normalBedsTotal: 40,
+        normalBedsAvailable: 12,
         ventilatorsTotal: 15,
-        ventilatorsAvailable: 1,
+        ventilatorsAvailable: 3,
         traumaUnitsTotal: 4,
-        traumaUnitsAvailable: 1,
+        traumaUnitsAvailable: 2,
         emergencyTeamStatus: 'Available (Team Beta Standing By)',
         bloodReservePercentage: 88,
         inboundQueue: []
@@ -236,12 +240,14 @@ function getSeedData() {
         locality: 'Wardha Road / MIHAN Corridor',
         emergencyContact: '+91 712 298 0501',
         icuBedsTotal: 16,
-        icuBedsAvailable: 3,
+        icuBedsAvailable: 4,
+        normalBedsTotal: 30,
+        normalBedsAvailable: 10,
         ventilatorsTotal: 12,
-        ventilatorsAvailable: 2,
+        ventilatorsAvailable: 3,
         traumaUnitsTotal: 4,
-        traumaUnitsAvailable: 0,
-        emergencyTeamStatus: 'Delayed (Handling Mass Casualty)',
+        traumaUnitsAvailable: 2,
+        emergencyTeamStatus: 'Available (Team Gamma On Duty)',
         bloodReservePercentage: 75,
         inboundQueue: []
       }
@@ -268,6 +274,21 @@ class Database {
         for (const key of Object.keys(seed)) {
           if (!this.data[key]) {
             this.data[key] = seed[key];
+          }
+        }
+        // Ensure hospitals have all bed fields and valid non-zero baseline
+        if (this.data.hospitals) {
+          for (const hid of Object.keys(seed.hospitals)) {
+            if (!this.data.hospitals[hid]) {
+              this.data.hospitals[hid] = seed.hospitals[hid];
+            } else {
+              const h = this.data.hospitals[hid];
+              if (h.normalBedsTotal === undefined) h.normalBedsTotal = seed.hospitals[hid].normalBedsTotal;
+              if (h.normalBedsAvailable === undefined) h.normalBedsAvailable = seed.hospitals[hid].normalBedsAvailable;
+              if (h.icuBedsAvailable === 0 && (!h.inboundQueue || h.inboundQueue.length === 0)) {
+                h.icuBedsAvailable = seed.hospitals[hid].icuBedsAvailable;
+              }
+            }
           }
         }
       } catch (err) {
@@ -388,14 +409,20 @@ class Database {
 
   getActiveAmbulanceRequest(userId = null) {
     if (userId) {
-      return this.data.ambulanceRequests.find(req => req.userId === userId && req.status !== 'ARRIVED' && req.status !== 'COMPLETED') || null;
+      return this.data.ambulanceRequests.find(req => req.userId === userId && req.status !== 'DISCHARGED' && req.status !== 'COMPLETED') || null;
     }
-    return this.data.ambulanceRequests.find(req => req.status !== 'ARRIVED' && req.status !== 'COMPLETED') || null;
+    return this.data.ambulanceRequests.find(req => req.status !== 'DISCHARGED' && req.status !== 'COMPLETED') || null;
   }
 
   createAmbulanceRequest(requestData) {
     const requestId = `EMG-NAG-${Math.floor(1000 + Math.random() * 9000)}`;
     const hosp = this.data.hospitals[requestData.hospitalId] || this.data.hospitals['NCEH001'];
+
+    // Auto decrement available bed count on request
+    if (hosp) {
+      if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
+      else if (hosp.normalBedsAvailable > 0) hosp.normalBedsAvailable -= 1;
+    }
 
     const request = {
       id: requestId,
@@ -407,10 +434,10 @@ class Database {
       severity: requestData.severity || 'CRITICAL',
       bloodGroup: requestData.bloodGroup || 'O+',
       locality: requestData.locality || 'Dharampeth, Nagpur',
-      hospitalId: hosp.id,
-      hospitalName: hosp.name,
-      hospitalLocality: hosp.locality,
-      hospitalContact: hosp.emergencyContact,
+      hospitalId: hosp ? hosp.id : 'NCEH001',
+      hospitalName: hosp ? hosp.name : 'Nagpur Central Emergency Hospital',
+      hospitalLocality: hosp ? hosp.locality : 'Civil Lines, Nagpur',
+      hospitalContact: hosp ? hosp.emergencyContact : '+91 712 255 1001',
       ambulanceCode: requestData.ambulanceCode || `ZM-${Math.floor(1000 + Math.random() * 9000)}`,
       ambulanceType: requestData.ambulanceType || 'Advanced Life Support (ALS) Ambulance',
       driverName: 'Amit Sharma',
@@ -425,6 +452,8 @@ class Database {
       is15mAlertTriggered: true,
       is15mAlertAccepted: false,
       acceptedTimestamp: null,
+      doctorFeedback: null,
+      dischargedAt: null,
       vitals: requestData.vitals || {
         heartRate: 114,
         bp: '142/92',
@@ -440,6 +469,7 @@ class Database {
 
     // Add to hospital inbound queue
     if (hosp) {
+      if (!hosp.inboundQueue) hosp.inboundQueue = [];
       hosp.inboundQueue.unshift({
         id: request.id,
         patientName: request.patientName,
@@ -452,7 +482,8 @@ class Database {
         assignedDoctor: 'Dr. S. Deshmukh',
         bedStatus: 'ICU / Trauma Unit Reserved',
         isAlert15m: true,
-        accepted: false
+        accepted: false,
+        status: 'INCOMING'
       });
     }
 
@@ -467,7 +498,7 @@ class Database {
 
     // Update in hospital queue as well
     const hosp = this.data.hospitals[req.hospitalId];
-    if (hosp) {
+    if (hosp && hosp.inboundQueue) {
       const qItem = hosp.inboundQueue.find(p => p.id === id);
       if (qItem) {
         if (updates.etaSeconds !== undefined) {
@@ -476,7 +507,7 @@ class Database {
         }
         if (updates.is15mAlertAccepted !== undefined) {
           qItem.accepted = updates.is15mAlertAccepted;
-          qItem.bedStatus = '✓ ICU-04 & Trauma Bay Locked';
+          qItem.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
         }
         if (updates.status === 'ARRIVED') {
           qItem.bedStatus = '✓ Patient Arrived at Emergency Bay';
@@ -560,7 +591,7 @@ class Database {
     return this.data.loginLogs;
   }
 
-  // --- Hospitals ---
+  // --- Hospitals & Live Bed / Seat Management ---
   getHospitals() {
     return this.data.hospitals;
   }
@@ -569,12 +600,133 @@ class Database {
     return this.data.hospitals[id] || null;
   }
 
-  updateHospitalResources(id, updates) {
+  updateHospitalInventory(id, inventoryData) {
     const hosp = this.getHospitalById(id);
     if (!hosp) return null;
-    Object.assign(hosp, updates);
+
+    if (inventoryData.icuBedsTotal !== undefined) {
+      hosp.icuBedsTotal = Math.max(1, parseInt(inventoryData.icuBedsTotal) || hosp.icuBedsTotal);
+    }
+    if (inventoryData.icuBedsAvailable !== undefined) {
+      hosp.icuBedsAvailable = Math.max(0, Math.min(hosp.icuBedsTotal, parseInt(inventoryData.icuBedsAvailable)));
+    }
+    if (inventoryData.normalBedsTotal !== undefined) {
+      hosp.normalBedsTotal = Math.max(1, parseInt(inventoryData.normalBedsTotal) || (hosp.normalBedsTotal || 40));
+    }
+    if (inventoryData.normalBedsAvailable !== undefined) {
+      hosp.normalBedsAvailable = Math.max(0, Math.min(hosp.normalBedsTotal, parseInt(inventoryData.normalBedsAvailable)));
+    }
+    if (inventoryData.ventilatorsTotal !== undefined) {
+      hosp.ventilatorsTotal = Math.max(0, parseInt(inventoryData.ventilatorsTotal) || hosp.ventilatorsTotal);
+    }
+    if (inventoryData.ventilatorsAvailable !== undefined) {
+      hosp.ventilatorsAvailable = Math.max(0, Math.min(hosp.ventilatorsTotal, parseInt(inventoryData.ventilatorsAvailable)));
+    }
+    if (inventoryData.traumaUnitsTotal !== undefined) {
+      hosp.traumaUnitsTotal = Math.max(0, parseInt(inventoryData.traumaUnitsTotal) || hosp.traumaUnitsTotal);
+    }
+    if (inventoryData.traumaUnitsAvailable !== undefined) {
+      hosp.traumaUnitsAvailable = Math.max(0, Math.min(hosp.traumaUnitsTotal, parseInt(inventoryData.traumaUnitsAvailable)));
+    }
+    if (inventoryData.emergencyTeamStatus !== undefined) {
+      hosp.emergencyTeamStatus = inventoryData.emergencyTeamStatus;
+    }
+    if (inventoryData.bloodReservePercentage !== undefined) {
+      hosp.bloodReservePercentage = Math.max(0, Math.min(100, parseInt(inventoryData.bloodReservePercentage) || hosp.bloodReservePercentage));
+    }
+
     this.save();
     return hosp;
+  }
+
+  // Discharge Patient with Doctor Feedback & Free up Bed/Seat (+1)
+  dischargePatient(hospitalId, requestId, feedbackData = {}) {
+    const hosp = this.getHospitalById(hospitalId);
+    const req = this.getAmbulanceRequestById(requestId);
+
+    const feedbackText = feedbackData.feedback || "Patient received prompt treatment at our hospital, vitals have normalized, and is doing good now.";
+    const outcomeText = feedbackData.outcome || "Fully Recovered & Discharged";
+    const dischargeTime = new Date().toISOString();
+
+    if (req) {
+      req.status = 'DISCHARGED';
+      req.dischargeStatus = 'TREATED';
+      req.doctorFeedback = feedbackText;
+      req.outcome = outcomeText;
+      req.dischargedAt = dischargeTime;
+      req.dischargedByHospitalId = hospitalId;
+      req.dischargedByHospitalName = hosp ? hosp.name : 'Hospital';
+    }
+
+    // In hospital inboundQueue, update status
+    if (hosp && hosp.inboundQueue) {
+      const qItem = hosp.inboundQueue.find(p => p.id === requestId);
+      if (qItem) {
+        qItem.status = 'DISCHARGED';
+        qItem.bedStatus = `✓ Treatment Completed • ${outcomeText}`;
+        qItem.doctorFeedback = feedbackText;
+        qItem.dischargedAt = dischargeTime;
+      }
+    }
+
+    // Free up available bed (+1 Available Bed / Seat)
+    if (hosp) {
+      if (hosp.icuBedsAvailable < hosp.icuBedsTotal) {
+        hosp.icuBedsAvailable += 1;
+      } else if (hosp.normalBedsAvailable !== undefined && hosp.normalBedsAvailable < hosp.normalBedsTotal) {
+        hosp.normalBedsAvailable += 1;
+      }
+      if (hosp.ventilatorsAvailable < hosp.ventilatorsTotal) {
+        hosp.ventilatorsAvailable += 1;
+      }
+      if (hosp.traumaUnitsAvailable < hosp.traumaUnitsTotal) {
+        hosp.traumaUnitsAvailable += 1;
+      }
+    }
+
+    this.save();
+    return {
+      success: true,
+      hospital: hosp,
+      emergency: req,
+      feedback: feedbackText,
+      outcome: outcomeText,
+      dischargedAt: dischargeTime
+    };
+  }
+
+  // Mark patient admitted
+  admitPatient(hospitalId, requestId) {
+    const hosp = this.getHospitalById(hospitalId);
+    const req = this.getAmbulanceRequestById(requestId);
+
+    if (req) {
+      req.status = 'ADMITTED';
+      req.journeyStep = 6;
+    }
+
+    if (hosp && hosp.inboundQueue) {
+      const qItem = hosp.inboundQueue.find(p => p.id === requestId);
+      if (qItem) {
+        qItem.status = 'ADMITTED';
+        qItem.bedStatus = '✓ Admitted & In Emergency Care';
+      }
+    }
+
+    this.save();
+    return { success: true, hospital: hosp, emergency: req };
+  }
+
+  // Full state synchronization payload
+  getFullSyncState() {
+    return {
+      timestamp: Date.now(),
+      hospitals: this.data.hospitals,
+      ambulanceRequests: this.data.ambulanceRequests,
+      bloodRequests: this.data.bloodRequests,
+      bloodDonors: this.getBloodDonors(true),
+      contactDispatches: this.data.contactDispatches
+    };
   }
 
   // --- Admin Comprehensive Overview ---
@@ -587,7 +739,7 @@ class Database {
         totalBloodRequests: this.data.bloodRequests.length,
         totalDispatches: this.data.contactDispatches.length,
         totalLoginEvents: this.data.loginLogs.length,
-        activeEmergencies: this.data.ambulanceRequests.filter(r => r.status !== 'ARRIVED' && r.status !== 'COMPLETED').length
+        activeEmergencies: this.data.ambulanceRequests.filter(r => r.status !== 'DISCHARGED' && r.status !== 'COMPLETED').length
       },
       users: this.getAllUsers(),
       bloodDonors: this.getBloodDonors(false), // Admin gets FULL UNMASKED donor details & real phone numbers

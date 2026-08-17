@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const os = require('os');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('./server/db');
@@ -10,11 +11,71 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'zeromile-super-secret-key-nagpur-2026';
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-// Serve static frontend files
-app.use(express.static(path.join(__dirname)));
+// Serve static frontend files with proper caching headers
+app.use(express.static(path.join(__dirname), {
+  etag: false,
+  maxAge: 0
+}));
+
+// ==========================================
+// REAL-TIME SERVER-SENT EVENTS (SSE) ENGINE
+// ==========================================
+let sseClients = [];
+
+function broadcastEvent(eventType, payload) {
+  const message = `event: ${eventType}\ndata: ${JSON.stringify({ type: eventType, data: payload, timestamp: Date.now() })}\n\n`;
+  sseClients.forEach((client, idx) => {
+    try {
+      client.res.write(message);
+    } catch (err) {
+      sseClients.splice(idx, 1);
+    }
+  });
+}
+
+// SSE Connection Endpoint
+app.get('/api/events', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*'
+  });
+
+  const clientId = `client-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const newClient = { id: clientId, res };
+  sseClients.push(newClient);
+
+  // Send initial handshake
+  res.write(`event: connected\ndata: ${JSON.stringify({ clientId, timestamp: Date.now() })}\n\n`);
+
+  // Heartbeat ping every 15s to keep mobile connection alive
+  const pingInterval = setInterval(() => {
+    try {
+      res.write(`: ping\n\n`);
+    } catch (e) {
+      clearInterval(pingInterval);
+    }
+  }, 15000);
+
+  req.on('close', () => {
+    clearInterval(pingInterval);
+    sseClients = sseClients.filter(c => c.id !== clientId);
+  });
+});
+
+// Full Server State Sync (for fast multi-device polling fallback)
+app.get('/api/sync/state', (req, res) => {
+  try {
+    const syncState = db.getFullSyncState();
+    return res.json({ success: true, ...syncState });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Sync failed' });
+  }
+});
 
 // Helper: Extract user from JWT
 function authenticateToken(req, res, next) {
@@ -145,7 +206,6 @@ app.post('/api/auth/login', (req, res) => {
     // Verify password if set
     if (user.passwordHash && password) {
       const isValid = bcrypt.compareSync(password, user.passwordHash);
-      // Allow fallback if password matches default
       if (!isValid && password !== 'admin123' && password !== 'hospital123' && password !== '••••••••') {
         db.addLoginLog({
           userId: user.id,
@@ -239,6 +299,8 @@ app.post('/api/donors/register', (req, res) => {
       lastDonated: lastDonated || 'New Donor'
     });
 
+    broadcastEvent('DONOR_REGISTERED', { donor });
+
     return res.json({
       success: true,
       message: `Thank you, ${name}! You are registered as an active Nagpur blood donor.`,
@@ -265,6 +327,8 @@ app.post('/api/donors/contact', (req, res) => {
       locality: locality || (donor ? donor.locality : 'Nagpur'),
       message: `URGENT BLOOD ALERT: ${bloodGroup || 'Blood'} requirement at emergency unit in Nagpur.`
     });
+
+    broadcastEvent('DONOR_CONTACTED', { dispatch, donorId });
 
     return res.json({
       success: true,
@@ -301,7 +365,7 @@ app.get('/api/ambulance/all', (req, res) => {
   }
 });
 
-// Request Emergency Ambulance
+// Request Emergency Ambulance (Citizen $\rightarrow$ Instant Broadcast to Hospital & Network)
 app.post('/api/ambulance/request', (req, res) => {
   try {
     const { patientName, age, condition, severity, locality, hospitalId, bloodGroup, vitals } = req.body;
@@ -322,10 +386,20 @@ app.post('/api/ambulance/request', (req, res) => {
       vitals
     });
 
+    const targetHosp = db.getHospitalById(emergency.hospitalId);
+
+    // Broadcast instant real-time emergency alert across all connected devices!
+    broadcastEvent('EMERGENCY_CREATED', {
+      emergency,
+      hospital: targetHosp,
+      hospitals: db.getHospitals()
+    });
+
     return res.json({
       success: true,
       message: `Ambulance ${emergency.ambulanceCode} dispatched for ${patientName}`,
-      emergency
+      emergency,
+      hospital: targetHosp
     });
   } catch (error) {
     console.error('Ambulance request error:', error);
@@ -343,6 +417,8 @@ app.patch('/api/ambulance/:id/status', (req, res) => {
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Emergency request not found' });
     }
+
+    broadcastEvent('EMERGENCY_STATUS_UPDATED', { emergency: updated });
 
     return res.json({ success: true, emergency: updated });
   } catch (error) {
@@ -374,6 +450,9 @@ app.post('/api/blood-requests', (req, res) => {
       hospital,
       locality
     });
+
+    broadcastEvent('BLOOD_REQ_CREATED', { bloodRequest: reqItem });
+
     return res.json({ success: true, bloodRequest: reqItem });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to create blood request' });
@@ -381,7 +460,7 @@ app.post('/api/blood-requests', (req, res) => {
 });
 
 // ==========================================
-// 5. HOSPITAL COMMAND CENTER APIS
+// 5. HOSPITAL COMMAND CENTER & BED MANAGEMENT APIS
 // ==========================================
 
 app.get('/api/hospitals', (req, res) => {
@@ -393,6 +472,35 @@ app.get('/api/hospitals', (req, res) => {
   }
 });
 
+// Update Bed / Seat & Resource Inventory
+app.post('/api/hospitals/:id/inventory', (req, res) => {
+  try {
+    const { id } = req.params;
+    const inventoryData = req.body;
+
+    const hosp = db.updateHospitalInventory(id, inventoryData);
+    if (!hosp) {
+      return res.status(404).json({ success: false, message: 'Hospital not found' });
+    }
+
+    // Broadcast inventory update to all connected devices & public recommendation engines
+    broadcastEvent('HOSPITAL_INVENTORY_UPDATED', {
+      hospital: hosp,
+      hospitals: db.getHospitals()
+    });
+
+    return res.json({
+      success: true,
+      message: `Bed & Resource Inventory successfully updated for ${hosp.name}`,
+      hospital: hosp
+    });
+  } catch (error) {
+    console.error('Inventory update error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update bed inventory' });
+  }
+});
+
+// Hospital Accept Pre-Arrival Alert
 app.post('/api/hospitals/:id/accept-alert', (req, res) => {
   try {
     const { id } = req.params;
@@ -423,6 +531,12 @@ app.post('/api/hospitals/:id/accept-alert', (req, res) => {
 
     db.save();
 
+    broadcastEvent('ALERT_ACCEPTED', {
+      hospital: hosp,
+      activeEmergency: activeReq,
+      hospitals: db.getHospitals()
+    });
+
     return res.json({
       success: true,
       message: `Emergency resources locked and confirmed at ${hosp.name}`,
@@ -431,6 +545,53 @@ app.post('/api/hospitals/:id/accept-alert', (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to accept alert' });
+  }
+});
+
+// Admit Patient into Hospital Bay
+app.post('/api/hospitals/:id/admit-patient', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { requestId } = req.body;
+
+    const result = db.admitPatient(id, requestId);
+    broadcastEvent('PATIENT_ADMITTED', result);
+
+    return res.json({
+      success: true,
+      message: 'Patient marked as Admitted into Emergency Care',
+      ...result
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to admit patient' });
+  }
+});
+
+// Discharge Patient & Provide Doctor Feedback (Frees up bed/seat +1)
+app.post('/api/hospitals/:id/discharge-patient', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { requestId, feedback, outcome } = req.body;
+
+    const result = db.dischargePatient(id, requestId, { feedback, outcome });
+
+    // Broadcast patient discharge & freed seat to all clients
+    broadcastEvent('PATIENT_DISCHARGED', {
+      hospital: result.hospital,
+      emergency: result.emergency,
+      feedback: result.feedback,
+      outcome: result.outcome,
+      hospitals: db.getHospitals()
+    });
+
+    return res.json({
+      success: true,
+      message: `Patient treatment recorded and bed released back into available inventory.`,
+      ...result
+    });
+  } catch (error) {
+    console.error('Discharge error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to discharge patient' });
   }
 });
 
@@ -466,12 +627,30 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Helper: Get local network IPv4 addresses
+function getNetworkIps() {
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        addresses.push(net.address);
+      }
+    }
+  }
+  return addresses;
+}
+
+// Start Server on 0.0.0.0 (Accessible from Laptop, Phone, Tablet on local Wi-Fi / Network)
+app.listen(PORT, '0.0.0.0', () => {
+  const ips = getNetworkIps();
   console.log(`====================================================`);
   console.log(`🚑 Zero-Mile MedConnect Backend Server Running!`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
+  console.log(`💻 Local Host URL:   http://localhost:${PORT}`);
+  ips.forEach(ip => {
+    console.log(`📱 Judge/Phone URL:  http://${ip}:${PORT}`);
+  });
   console.log(`🔑 Owner/Admin Login: admin / admin123`);
-  console.log(`🏥 Hospital Login: NCEH001 / hospital123`);
+  console.log(`🏥 Hospital Login:    NCEH001 / hospital123`);
   console.log(`====================================================`);
 });

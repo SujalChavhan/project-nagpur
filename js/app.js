@@ -141,9 +141,44 @@ class MedConnectApp {
       }
     });
 
+    // Real-Time Cross-Device New Emergency Alert
+    window.medStore.subscribe('EMERGENCY_CREATED', (payload) => {
+      this.renderAmbulanceTracking();
+      this.renderHospitalAlertBanner();
+      this.renderHospitalEOC();
+      this.renderCitizenDashboard();
+      this.renderHeroStats();
+      if (window.nagpurMap) window.nagpurMap.updateEmergencyRoute();
+
+      const role = window.medStore.getCurrentRole();
+      if (role === 'hospital' || role === 'admin') {
+        if (window.medAudio) window.medAudio.playEmergencyAlert();
+        const patName = (payload.emergency && payload.emergency.patientName) || 'Emergency Patient';
+        const hospName = (payload.hospital && payload.hospital.name) || 'Hospital';
+        this.showToast(`🚨 NEW EMERGENCY DISPATCH: ${patName} en route to ${hospName}! Available beds decremented by 1.`, "critical", 7000);
+      }
+    });
+
+    // Real-Time Cross-Device Patient Discharge & Feedback Alert
+    window.medStore.subscribe('PATIENT_DISCHARGED', (payload) => {
+      this.renderAmbulanceTracking();
+      this.renderHospitalEOC();
+      this.renderCitizenDashboard();
+      this.renderHeroStats();
+
+      const role = window.medStore.getCurrentRole();
+      if (role === 'citizen') {
+        if (window.medAudio) window.medAudio.playSuccessChime();
+        this.showToast(`🎉 Treatment Completed! Doctor Note: "${payload.feedback || 'Patient is fine, received treatment from our hospital, and is good now.'}"`, "success", 8000);
+      } else {
+        this.showToast(`✓ Patient discharged. 1 Bed/Seat restored to available inventory.`, "success");
+      }
+    });
+
     window.medStore.subscribe('HOSPITAL_DATA_UPDATED', (hosp) => {
       this.renderHospitalEOC();
       this.renderHospitalAlertBanner();
+      this.renderHeroStats();
     });
 
     // 1-Second Real-Time Countdown Tick
@@ -360,6 +395,40 @@ class MedConnectApp {
     if (!emg) return;
 
     const targetHosp = window.medStore.getHospitalById(emg.destinationHospitalId) || NAGPUR_DATA.hospitals[0];
+
+    // Discharge & Doctor Feedback Banner
+    const dischargeBanner = document.getElementById('citizenDischargeBanner');
+    if (dischargeBanner) {
+      if (emg.status === 'DISCHARGED') {
+        dischargeBanner.style.display = 'block';
+        dischargeBanner.innerHTML = `
+          <div style="padding: 20px; background: #ecfdf5; border-radius: 16px; border: 2px solid #10b981; box-shadow: var(--shadow-md);" class="animate-fade-in-up">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.8rem;">🎉</span>
+                <div>
+                  <h3 style="font-size: 1.3rem; color: #065f46; margin: 0;">Emergency Treatment Completed!</h3>
+                  <span style="font-size: 0.8rem; color: #047857;">Treated at ${targetHosp.name}</span>
+                </div>
+              </div>
+              <span class="badge badge-success" style="font-size: 0.9rem; padding: 6px 14px;">✓ ${emg.outcome || 'Fully Recovered & Discharged'}</span>
+            </div>
+            <div style="margin: 12px 0; padding: 14px 16px; background: #ffffff; border-radius: 10px; border: 1px solid #a7f3d0;">
+              <span style="font-size: 0.72rem; font-weight: 800; color: #047857; text-transform: uppercase; display: block; margin-bottom: 4px;">DOCTOR & HOSPITAL CLINICAL FEEDBACK</span>
+              <p style="font-size: 0.95rem; color: #065f46; font-weight: 600; margin: 0; line-height: 1.5;">
+                "${emg.doctorFeedback || 'This person is fine, received treatment from our hospital, and is good now. Vitals normalized.'}"
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 0.82rem; color: #047857;">
+              <span>✅ Hospital emergency bed / seat released back into public capacity.</span>
+              <button class="btn btn-sm btn-success" onclick="window.app.switchView('citizen')">Back to Citizen Portal</button>
+            </div>
+          </div>
+        `;
+      } else {
+        dischargeBanner.style.display = 'none';
+      }
+    }
 
     // 1. Destination Hospital details
     const targetHospName = document.getElementById('trackingTargetHospName');
@@ -715,7 +784,10 @@ class MedConnectApp {
     if (codeEl) codeEl.innerText = `ID: ${hosp.code} • ${hosp.locality}, Nagpur`;
 
     const eocIncoming = document.getElementById('eocIncomingVal');
-    if (eocIncoming) eocIncoming.innerText = hosp.inboundQueue ? hosp.inboundQueue.length : 0;
+    if (eocIncoming) {
+      const activeInbound = (hosp.inboundQueue || []).filter(p => p.status !== 'DISCHARGED');
+      eocIncoming.innerText = activeInbound.length;
+    }
 
     const eocCritical = document.getElementById('eocCriticalVal');
     if (eocCritical) eocCritical.innerText = hosp.activeAlert15m && !hosp.activeAlert15m.isAccepted ? '1' : '0';
@@ -733,19 +805,19 @@ class MedConnectApp {
     const icuFill = document.getElementById('icuBarFill');
     const icuLabel = document.getElementById('icuAvailableLabel');
     if (icuFill && icuLabel) {
-      const pct = Math.round((hosp.icuBedsAvailable / (hosp.icuBedsTotal || 20)) * 100);
+      const pct = Math.round((hosp.icuBedsAvailable / (hosp.icuBedsTotal || 24)) * 100);
       icuFill.style.width = `${pct}%`;
       icuFill.style.backgroundColor = pct < 25 ? 'var(--critical-500)' : 'var(--success-500)';
-      icuLabel.innerText = `${hosp.icuBedsAvailable} available (${hosp.icuBedsTotal || 20} total)`;
+      icuLabel.innerText = `${hosp.icuBedsAvailable} available (${hosp.icuBedsTotal || 24} total)`;
     }
 
     const ventFill = document.getElementById('ventBarFill');
     const ventLabel = document.getElementById('ventAvailableLabel');
     if (ventFill && ventLabel) {
-      const pct = Math.round((hosp.ventilatorsAvailable / (hosp.ventilatorsTotal || 15)) * 100);
+      const pct = Math.round((hosp.ventilatorsAvailable / (hosp.ventilatorsTotal || 18)) * 100);
       ventFill.style.width = `${pct}%`;
       ventFill.style.backgroundColor = pct < 25 ? 'var(--critical-500)' : 'var(--primary-500)';
-      ventLabel.innerText = `${hosp.ventilatorsAvailable} available (${hosp.ventilatorsTotal || 15} total)`;
+      ventLabel.innerText = `${hosp.ventilatorsAvailable} available (${hosp.ventilatorsTotal || 18} total)`;
     }
 
     const traumaFill = document.getElementById('traumaBarFill');
@@ -761,14 +833,14 @@ class MedConnectApp {
     const icuSlotsContainer = document.getElementById('icuSlotsGrid');
     if (icuSlotsContainer) {
       icuSlotsContainer.innerHTML = '';
-      const total = hosp.icuBedsTotal || 20;
+      const total = hosp.icuBedsTotal || 24;
       for (let i = 0; i < total; i++) {
         const slot = document.createElement('div');
         slot.className = 'resource-slot';
         if (i < hosp.icuBedsAvailable) {
           slot.classList.add('available');
           slot.title = `ICU Bed #${i + 1}: Available`;
-        } else if (i === hosp.icuBedsAvailable && hosp.activeAlert15m) {
+        } else if (i === hosp.icuBedsAvailable && hosp.activeAlert15m && !hosp.activeAlert15m.isAccepted) {
           slot.classList.add('reserved');
           slot.title = `ICU Bed #${i + 1}: Reserved (${hosp.activeAlert15m.patientName})`;
         } else {
@@ -779,7 +851,30 @@ class MedConnectApp {
       }
     }
 
-    // Hospital Inbound Queue
+    // Populate Bed & Resource Management Form Inputs
+    const invIcuAvail = document.getElementById('invIcuAvailable');
+    const invIcuTot = document.getElementById('invIcuTotal');
+    const invNormAvail = document.getElementById('invNormalAvailable');
+    const invNormTot = document.getElementById('invNormalTotal');
+    const invVentAvail = document.getElementById('invVentAvailable');
+    const invVentTot = document.getElementById('invVentTotal');
+    const invTraumaAvail = document.getElementById('invTraumaAvailable');
+    const invTraumaTot = document.getElementById('invTraumaTotal');
+    const invTeam = document.getElementById('invTeamStatus');
+    const invBlood = document.getElementById('invBloodReserve');
+
+    if (invIcuAvail) invIcuAvail.value = hosp.icuBedsAvailable;
+    if (invIcuTot) invIcuTot.value = hosp.icuBedsTotal || 24;
+    if (invNormAvail) invNormAvail.value = hosp.normalBedsAvailable !== undefined ? hosp.normalBedsAvailable : 18;
+    if (invNormTot) invNormTot.value = hosp.normalBedsTotal || 50;
+    if (invVentAvail) invVentAvail.value = hosp.ventilatorsAvailable;
+    if (invVentTot) invVentTot.value = hosp.ventilatorsTotal || 18;
+    if (invTraumaAvail) invTraumaAvail.value = hosp.traumaUnitsAvailable;
+    if (invTraumaTot) invTraumaTot.value = hosp.traumaUnitsTotal || 6;
+    if (invTeam && hosp.emergencyTeamStatus) invTeam.value = hosp.emergencyTeamStatus;
+    if (invBlood) invBlood.value = hosp.bloodReservePercentage || 94;
+
+    // Hospital Inbound Queue with Complete Patient Discharge & Feedback Actions
     const queueContainer = document.getElementById('hospitalInboundQueue');
     if (queueContainer) {
       if (!hosp.inboundQueue || hosp.inboundQueue.length === 0) {
@@ -787,40 +882,64 @@ class MedConnectApp {
       } else {
         queueContainer.innerHTML = hosp.inboundQueue.map(p => {
           const isCritical = p.severity === 'CRITICAL';
+          const isDischarged = p.status === 'DISCHARGED';
+          const isAdmitted = p.status === 'ADMITTED';
           const badgeClass = isCritical ? 'badge-critical' : (p.severity === 'URGENT' ? 'badge-urgent' : 'badge-neutral');
           const mins = Math.floor((p.etaSeconds || 0) / 60);
           const secs = (p.etaSeconds || 0) % 60;
-          const etaFormatted = p.etaSeconds === 0 ? "ARRIVED" : `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          const etaFormatted = isDischarged ? "DISCHARGED" : (p.etaSeconds === 0 || isAdmitted ? "ARRIVED" : `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
 
           return `
-            <div class="patient-inbound-card ${isCritical && !p.accepted ? 'critical-state' : ''}">
+            <div class="patient-inbound-card ${isCritical && !p.accepted && !isDischarged ? 'critical-state' : ''}" style="${isDischarged ? 'border-left: 4px solid #10b981; background: #f0fdf4;' : ''}">
               <div class="patient-info-main">
-                <div class="patient-avatar-badge">${(p.patientName || 'P').charAt(0)}</div>
-                <div>
+                <div class="patient-avatar-badge" style="${isDischarged ? 'background: #dcfce7; color: #15803d;' : ''}">${(p.patientName || 'P').charAt(0)}</div>
+                <div style="flex: 1;">
                   <div class="patient-meta-name">
                     ${p.patientName} (${p.age || '40'}y)
-                    <span class="badge ${badgeClass}" style="margin-left: 6px;">${p.severity}</span>
+                    <span class="badge ${isDischarged ? 'badge-success' : badgeClass}" style="margin-left: 6px;">
+                      ${isDischarged ? '✓ Discharged & Good' : (isAdmitted ? '🏥 In Emergency Care' : p.severity)}
+                    </span>
                   </div>
                   <div class="patient-meta-details">
                     <strong>Complaint:</strong> ${p.condition} • <strong>Ambulance:</strong> ${p.ambulanceCode}
                   </div>
-                  <div style="font-size: 0.75rem; color: #2563eb; font-weight: 600; margin-top: 3px;">
+                  <div style="font-size: 0.78rem; color: ${isDischarged ? '#15803d' : '#2563eb'}; font-weight: 600; margin-top: 3px;">
                     ${p.bedStatus || 'ICU Unit Reserved'}
                   </div>
+                  ${isDischarged && p.doctorFeedback ? `
+                    <div style="margin-top: 6px; padding: 8px 12px; background: #ffffff; border-radius: 8px; border: 1px solid #bbf7d0; font-size: 0.78rem; color: #166534; line-height: 1.4;">
+                      💬 <strong>Doctor Feedback:</strong> "${p.doctorFeedback}"
+                    </div>
+                  ` : ''}
                 </div>
               </div>
-              <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">ETA</div>
-                <div class="font-mono" style="font-size: 1.4rem; font-weight: 800; color: ${p.etaSeconds === 0 ? '#10b981' : (isCritical ? 'var(--critical-600)' : 'var(--navy-900)')};">
+              <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 140px;">
+                <div style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">
+                  ${isDischarged ? 'Status' : 'ETA'}
+                </div>
+                <div class="font-mono" style="font-size: ${isDischarged ? '0.95rem' : '1.3rem'}; font-weight: 800; color: ${isDischarged ? '#10b981' : (p.etaSeconds === 0 ? '#10b981' : (isCritical ? 'var(--critical-600)' : 'var(--navy-900)'))};">
                   ${etaFormatted}
                 </div>
-                ${isCritical && !p.accepted ? `
-                  <button class="btn btn-sm btn-critical btn-tactile" onclick="window.medStore.acceptAndPrepare15mAlert(); window.medAudio.playSuccessChime();">
-                    Accept Alert
-                  </button>
-                ` : `
-                  <span class="badge badge-success">✓ Ready</span>
-                `}
+                <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+                  ${isDischarged ? `
+                    <span class="badge badge-success" style="width: 100%; text-align: center;">✓ Seat Freed (+1)</span>
+                  ` : (isAdmitted ? `
+                    <button class="btn btn-sm btn-success btn-tactile" style="width: 100%; font-weight: 700;" onclick="window.app.openDischargeModal('${p.id}', '${p.patientName}', '${p.severity}', '${p.condition}', '${p.ambulanceCode}')">
+                      🏥 Discharge Patient
+                    </button>
+                  ` : (p.accepted ? `
+                    <button class="btn btn-sm btn-primary btn-tactile" style="width: 100%; font-weight: 600; margin-bottom: 2px;" onclick="window.medStore.admitPatient('${hosp.id}', '${p.id}')">
+                      🏥 Mark Admitted
+                    </button>
+                    <button class="btn btn-sm btn-success btn-tactile" style="width: 100%; font-weight: 600;" onclick="window.app.openDischargeModal('${p.id}', '${p.patientName}', '${p.severity}', '${p.condition}', '${p.ambulanceCode}')">
+                      Discharge & Free Bed
+                    </button>
+                  ` : `
+                    <button class="btn btn-sm btn-critical btn-tactile" style="width: 100%; font-weight: 700;" onclick="window.medStore.acceptAndPrepare15mAlert('${hosp.id}'); window.medAudio.playSuccessChime();">
+                      Accept Alert
+                    </button>
+                  `))}
+                </div>
               </div>
             </div>
           `;
@@ -1303,6 +1422,83 @@ class MedConnectApp {
         if (window.medAudio) window.medAudio.playSuccessChime();
       });
     }
+
+    // 8. Hospital Bed & Seat Inventory Form / Save Button
+    const saveInventoryBtn = document.getElementById('saveHospitalInventoryBtn');
+    if (saveInventoryBtn) {
+      saveInventoryBtn.addEventListener('click', () => {
+        this.saveHospitalInventory();
+      });
+    }
+
+    // 9. Patient Discharge & Doctor Feedback Form
+    const dischargeForm = document.getElementById('dischargePatientForm');
+    if (dischargeForm) {
+      dischargeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const requestId = document.getElementById('dischargeRequestId').value;
+        const hospitalId = document.getElementById('dischargeHospitalId').value || window.medStore.getCurrentHospitalId();
+        const outcome = document.getElementById('dischargeOutcomeSelect').value;
+        const feedback = document.getElementById('dischargeFeedbackText').value.trim();
+
+        await window.medStore.dischargePatientWithFeedback(hospitalId, requestId, feedback, outcome);
+        this.closeAllModals();
+        this.showToast("✓ Patient treatment completed & bed released back to inventory (+1)!", "success");
+        if (window.medAudio) window.medAudio.playSuccessChime();
+      });
+    }
+  }
+
+  // Helper: Increase / Decrease bed & resource numbers
+  adjustInventoryField(fieldId, delta) {
+    const input = document.getElementById(fieldId);
+    if (input) {
+      const currentVal = parseInt(input.value) || 0;
+      input.value = Math.max(0, currentVal + delta);
+    }
+  }
+
+  // Save Bed & Resource Inventory to Server
+  async saveHospitalInventory() {
+    const hospId = window.medStore.getCurrentHospitalId();
+    const invData = {
+      icuBedsAvailable: parseInt(document.getElementById('invIcuAvailable').value) || 0,
+      icuBedsTotal: parseInt(document.getElementById('invIcuTotal').value) || 24,
+      normalBedsAvailable: parseInt(document.getElementById('invNormalAvailable').value) || 0,
+      normalBedsTotal: parseInt(document.getElementById('invNormalTotal').value) || 50,
+      ventilatorsAvailable: parseInt(document.getElementById('invVentAvailable').value) || 0,
+      ventilatorsTotal: parseInt(document.getElementById('invVentTotal').value) || 18,
+      traumaUnitsAvailable: parseInt(document.getElementById('invTraumaAvailable').value) || 0,
+      traumaUnitsTotal: parseInt(document.getElementById('invTraumaTotal').value) || 6,
+      emergencyTeamStatus: document.getElementById('invTeamStatus').value,
+      bloodReservePercentage: parseInt(document.getElementById('invBloodReserve').value) || 94
+    };
+
+    const res = await window.medStore.updateHospitalInventory(hospId, invData);
+    if (res && res.success) {
+      this.showToast(`💾 Live Bed Inventory Updated & Broadcasted for ${window.medStore.getCurrentHospitalData().name}!`, "success");
+      if (window.medAudio) window.medAudio.playSuccessChime();
+    }
+  }
+
+  // Open Discharge & Doctor Feedback Modal
+  openDischargeModal(requestId, patientName, severity, condition, ambulanceCode) {
+    const reqInput = document.getElementById('dischargeRequestId');
+    const hospInput = document.getElementById('dischargeHospitalId');
+    const nameEl = document.getElementById('dischargePatientName');
+    const badgeEl = document.getElementById('dischargeSeverityBadge');
+    const condEl = document.getElementById('dischargeConditionText');
+
+    if (reqInput) reqInput.value = requestId;
+    if (hospInput) hospInput.value = window.medStore.getCurrentHospitalId();
+    if (nameEl) nameEl.innerText = patientName || "Emergency Patient";
+    if (badgeEl) {
+      badgeEl.innerText = severity || "CRITICAL";
+      badgeEl.className = severity === 'CRITICAL' ? 'badge badge-critical' : 'badge badge-primary';
+    }
+    if (condEl) condEl.innerText = `${condition || 'Accident / Trauma'} • Ambulance: ${ambulanceCode || 'ZM-1024'}`;
+
+    this.openModal('dischargePatientModal');
   }
 
   openRequestAmbulanceStep1() {

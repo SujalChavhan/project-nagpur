@@ -1,22 +1,21 @@
 /**
- * ZERO-MILE MEDCONNECT — REACTIVE STATE STORE & BACKEND SYNCHRONIZER
+ * ZERO-MILE MEDCONNECT — REACTIVE STATE STORE & REAL-TIME BACKEND SYNCHRONIZER
  * Manages Citizen, Hospital, and Admin authentication sessions,
- * connects directly to the Node.js/Express backend, manages 1-second countdown,
- * and maintains strict role-based data isolation.
+ * connects to Server-Sent Events (SSE) and fast sync polling,
+ * manages 1-second countdown, bed inventory management, and patient discharge workflows.
  */
 
 class MedConnectStore {
   constructor() {
     this.subscribers = {};
-    this.storageKey = 'zero_mile_medconnect_state_v5';
+    this.storageKey = 'zero_mile_medconnect_state_v6';
     this.state = this.loadInitialState();
     this.initCountdownTimer();
-    this.syncWithBackend();
+    this.initRealTimeSync();
   }
 
   getDefaultState() {
     return {
-      // Current Session Mode: 'guest', 'citizen', 'hospital', or 'admin'
       session: {
         role: 'guest', // 'guest', 'citizen', 'hospital', 'admin'
         token: null,
@@ -35,7 +34,7 @@ class MedConnectStore {
         }
       },
 
-      // Multi-Hospital Data Store
+      // Multi-Hospital Data Store with full Bed & Seat Inventories
       hospitals: {
         "NCEH001": {
           id: "NCEH001",
@@ -47,11 +46,13 @@ class MedConnectStore {
           lat: 21.1552,
           lng: 79.0865,
           icuBedsTotal: 24,
-          icuBedsAvailable: 4,
+          icuBedsAvailable: 6,
+          normalBedsTotal: 50,
+          normalBedsAvailable: 18,
           ventilatorsTotal: 18,
-          ventilatorsAvailable: 3,
+          ventilatorsAvailable: 5,
           traumaUnitsTotal: 6,
-          traumaUnitsAvailable: 2,
+          traumaUnitsAvailable: 3,
           emergencyTeamStatus: "Available (Team Alpha Ready)",
           bloodReservePercentage: 94,
           inboundQueue: []
@@ -66,11 +67,13 @@ class MedConnectStore {
           lat: 21.1114,
           lng: 79.0664,
           icuBedsTotal: 20,
-          icuBedsAvailable: 2,
+          icuBedsAvailable: 4,
+          normalBedsTotal: 40,
+          normalBedsAvailable: 12,
           ventilatorsTotal: 15,
-          ventilatorsAvailable: 1,
+          ventilatorsAvailable: 3,
           traumaUnitsTotal: 4,
-          traumaUnitsAvailable: 1,
+          traumaUnitsAvailable: 2,
           emergencyTeamStatus: "Available (Team Beta Standing By)",
           bloodReservePercentage: 88,
           inboundQueue: []
@@ -85,12 +88,14 @@ class MedConnectStore {
           lat: 21.0336,
           lng: 79.0275,
           icuBedsTotal: 16,
-          icuBedsAvailable: 3,
+          icuBedsAvailable: 4,
+          normalBedsTotal: 30,
+          normalBedsAvailable: 10,
           ventilatorsTotal: 12,
-          ventilatorsAvailable: 2,
+          ventilatorsAvailable: 3,
           traumaUnitsTotal: 4,
-          traumaUnitsAvailable: 0,
-          emergencyTeamStatus: "Delayed (Handling Mass Casualty)",
+          traumaUnitsAvailable: 2,
+          emergencyTeamStatus: "Available (Team Gamma On Duty)",
           bloodReservePercentage: 75,
           inboundQueue: []
         }
@@ -148,10 +153,11 @@ class MedConnectStore {
         status: "EN ROUTE",
         ambulanceStatus: "EN ROUTE",
         is15mAlertTriggered: true,
-        is15mAlertAccepted: false
+        is15mAlertAccepted: false,
+        doctorFeedback: null,
+        dischargedAt: null
       },
 
-      // Blood Connect Requests
       bloodRequests: [
         {
           id: "BLD-REQ-401",
@@ -191,6 +197,9 @@ class MedConnectStore {
         if (!parsed.activeEmergency) {
           parsed.activeEmergency = this.getDefaultState().activeEmergency;
         }
+        if (!parsed.hospitals) {
+          parsed.hospitals = this.getDefaultState().hospitals;
+        }
         return parsed;
       }
     } catch (e) {
@@ -207,12 +216,142 @@ class MedConnectStore {
     }
   }
 
-  // --- Initial Backend Sync ---
+  // ==========================================
+  // REAL-TIME SYNC: SSE STREAM & RAPID POLLING
+  // ==========================================
+
+  initRealTimeSync() {
+    if (!window.medApi) return;
+
+    // 1. Start Server-Sent Events (SSE) stream for instant real-time pushes
+    window.medApi.startEventStream((evtType, payload) => {
+      this.handleServerEvent(evtType, payload);
+    });
+
+    // 2. Initial backend load
+    this.syncWithBackend();
+
+    // 3. Fallback 2.5-second polling loop for guaranteed cross-device reliability
+    if (this.syncInterval) clearInterval(this.syncInterval);
+    this.syncInterval = setInterval(() => {
+      this.syncWithBackend();
+    }, 2500);
+  }
+
+  // Real-time Event Handler (Instant reactive reaction across all devices)
+  handleServerEvent(evtType, payload) {
+    console.log(`[RealTime Event] ${evtType}:`, payload);
+
+    if (evtType === 'EMERGENCY_CREATED') {
+      if (payload.hospitals) {
+        this.state.hospitals = payload.hospitals;
+      }
+      if (payload.emergency) {
+        this.formatAndSetActiveEmergency(payload.emergency);
+      }
+      this.saveState();
+      this.notify('EMERGENCY_CREATED', payload);
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+      this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    } else if (evtType === 'HOSPITAL_INVENTORY_UPDATED') {
+      if (payload.hospitals) {
+        this.state.hospitals = payload.hospitals;
+      } else if (payload.hospital) {
+        this.state.hospitals[payload.hospital.id] = payload.hospital;
+      }
+      this.saveState();
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+    } else if (evtType === 'ALERT_ACCEPTED') {
+      if (payload.hospital) {
+        this.state.hospitals[payload.hospital.id] = payload.hospital;
+      }
+      if (payload.activeEmergency && this.state.activeEmergency) {
+        this.state.activeEmergency.is15mAlertAccepted = true;
+        this.state.activeEmergency.acceptedTimestamp = payload.activeEmergency.acceptedTimestamp || new Date().toLocaleTimeString();
+      }
+      this.saveState();
+      this.notify('ALERT_15M_ACCEPTED', payload.hospital || this.getCurrentHospitalData());
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+      this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    } else if (evtType === 'PATIENT_ADMITTED') {
+      if (payload.hospital) {
+        this.state.hospitals[payload.hospital.id] = payload.hospital;
+      }
+      if (this.state.activeEmergency && payload.emergency && this.state.activeEmergency.id === payload.emergency.id) {
+        this.state.activeEmergency.status = 'ADMITTED';
+        this.state.activeEmergency.journeyStep = 6;
+      }
+      this.saveState();
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+      this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    } else if (evtType === 'PATIENT_DISCHARGED') {
+      if (payload.hospitals) {
+        this.state.hospitals = payload.hospitals;
+      } else if (payload.hospital) {
+        this.state.hospitals[payload.hospital.id] = payload.hospital;
+      }
+      if (this.state.activeEmergency && payload.emergency && this.state.activeEmergency.id === payload.emergency.id) {
+        this.state.activeEmergency.status = 'DISCHARGED';
+        this.state.activeEmergency.doctorFeedback = payload.feedback || payload.emergency.doctorFeedback;
+        this.state.activeEmergency.outcome = payload.outcome || payload.emergency.outcome;
+        this.state.activeEmergency.dischargedAt = payload.emergency.dischargedAt || new Date().toISOString();
+      }
+      this.saveState();
+      this.notify('PATIENT_DISCHARGED', payload);
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+      this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    } else if (evtType === 'DONOR_REGISTERED') {
+      if (payload.donor) {
+        this.state.registeredDonors.unshift(payload.donor);
+        this.saveState();
+        this.notify('DONORS_UPDATED', this.state.registeredDonors);
+      }
+    } else if (evtType === 'BLOOD_REQ_CREATED') {
+      if (payload.bloodRequest) {
+        this.state.bloodRequests.unshift(payload.bloodRequest);
+        this.saveState();
+        this.notify('BLOOD_REQUEST_CREATED', payload.bloodRequest);
+      }
+    }
+  }
+
+  // --- Backend Sync Polling Engine ---
   async syncWithBackend() {
     if (!window.medApi) return;
 
     try {
-      // 1. Check logged in user
+      const syncRes = await window.medApi.syncState();
+      if (syncRes && syncRes.success) {
+        // 1. Sync Hospitals and Inbound Queues
+        if (syncRes.hospitals) {
+          this.state.hospitals = syncRes.hospitals;
+          this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+        }
+
+        // 2. Sync Active Emergency
+        if (syncRes.ambulanceRequests && syncRes.ambulanceRequests.length > 0) {
+          const active = syncRes.ambulanceRequests.find(r => r.status !== 'DISCHARGED' && r.status !== 'COMPLETED') || syncRes.ambulanceRequests[0];
+          if (active) {
+            this.formatAndSetActiveEmergency(active);
+          }
+        }
+
+        // 3. Sync Blood Donors
+        if (syncRes.bloodDonors) {
+          this.state.registeredDonors = syncRes.bloodDonors;
+          this.notify('DONORS_UPDATED', this.state.registeredDonors);
+        }
+
+        // 4. Sync Blood Requests
+        if (syncRes.bloodRequests) {
+          this.state.bloodRequests = syncRes.bloodRequests;
+          this.notify('BLOOD_REQUEST_CREATED', this.state.bloodRequests);
+        }
+
+        this.saveState();
+      }
+
+      // Check current session
       const authRes = await window.medApi.getCurrentUser();
       if (authRes && authRes.authenticated && authRes.user) {
         const u = authRes.user;
@@ -231,44 +370,13 @@ class MedConnectStore {
           this.state.session.activeHospitalId = u.hospitalId || 'NCEH001';
         } else if (u.role === 'admin') {
           this.state.session.role = 'admin';
-          this.state.session.admin = {
-            id: u.id,
-            name: u.name,
-            username: u.username
-          };
+          this.state.session.admin = { id: u.id, name: u.name, username: u.username };
         }
         this.saveState();
         this.notify('SESSION_CHANGED', this.state.session);
       }
-
-      // 2. Fetch Donors
-      const donorsRes = await window.medApi.getDonors();
-      if (donorsRes && donorsRes.success && donorsRes.donors) {
-        this.state.registeredDonors = donorsRes.donors;
-        this.saveState();
-        this.notify('DONORS_UPDATED', this.state.registeredDonors);
-      }
-
-      // 3. Fetch Hospitals
-      const hospRes = await window.medApi.getHospitals();
-      if (hospRes && hospRes.success && hospRes.hospitals) {
-        this.state.hospitals = hospRes.hospitals;
-        this.saveState();
-        this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
-      }
-
-      // 4. Fetch Active Emergency
-      const emgRes = await window.medApi.getActiveEmergency();
-      if (emgRes && emgRes.success && emgRes.activeEmergency) {
-        this.formatAndSetActiveEmergency(emgRes.activeEmergency);
-      }
-
-      // 5. If Admin, fetch dashboard
-      if (this.state.session.role === 'admin') {
-        this.refreshAdminDashboard();
-      }
     } catch (err) {
-      console.warn('Backend sync note: running with local cached state');
+      // Offline/Local cached execution continues smoothly
     }
   }
 
@@ -338,7 +446,10 @@ class MedConnectStore {
       ambulanceStatus: serverEmg.status || "EN ROUTE",
       is15mAlertTriggered: true,
       is15mAlertAccepted: !!serverEmg.is15mAlertAccepted,
-      acceptedTimestamp: serverEmg.acceptedTimestamp || null
+      acceptedTimestamp: serverEmg.acceptedTimestamp || null,
+      doctorFeedback: serverEmg.doctorFeedback || null,
+      outcome: serverEmg.outcome || null,
+      dischargedAt: serverEmg.dischargedAt || null
     };
 
     this.state.activeEmergency = formatted;
@@ -358,7 +469,7 @@ class MedConnectStore {
 
   decrementEtaSecond() {
     const emg = this.state.activeEmergency;
-    if (!emg || emg.status === 'ARRIVED' || emg.status === 'COMPLETED') return;
+    if (!emg || emg.status === 'ARRIVED' || emg.status === 'COMPLETED' || emg.status === 'DISCHARGED') return;
 
     if (emg.etaSeconds > 0) {
       emg.etaSeconds -= 1;
@@ -383,7 +494,7 @@ class MedConnectStore {
         emg.ambulanceStatus = "EN ROUTE";
       }
 
-      // Interpolate GPS coordinates along the actual dynamic Nagpur route
+      // Interpolate GPS coordinates along Nagpur route
       const waypoints = emg.routeWaypoints || (typeof NAGPUR_DATA !== 'undefined' ? NAGPUR_DATA.demoRouteWaypoints : null);
       if (waypoints && waypoints.length >= 2 && emg.ambulance) {
         const initialEta = emg.initialEtaSeconds || 1080;
@@ -441,7 +552,6 @@ class MedConnectStore {
     this.saveState();
     this.notify('SESSION_CHANGED', this.state.session);
 
-    // Call backend API login / register
     if (window.medApi && citizenData.phone) {
       try {
         const res = await window.medApi.login(citizenData.phone, citizenData.password || 'citizen123', 'citizen');
@@ -493,7 +603,6 @@ class MedConnectStore {
         }
       }
     } catch (err) {
-      // Offline Admin fallback if username/password match admin/admin123
       if (username === 'admin' && (password === 'admin123' || password === 'admin')) {
         this.state.session.role = 'admin';
         this.state.session.admin = { id: 'usr-admin-01', name: 'ZeroMile Platform Admin', username: 'admin' };
@@ -518,29 +627,6 @@ class MedConnectStore {
         console.warn('Backend admin refresh note: using local dataset');
       }
     }
-
-    // Fallback local admin data
-    this.state.adminData = {
-      stats: {
-        totalUsers: 4,
-        totalDonors: this.state.registeredDonors.length + (window.NAGPUR_DATA ? NAGPUR_DATA.donors.length : 5),
-        totalAmbulanceRequests: 1,
-        totalBloodRequests: this.state.bloodRequests.length,
-        totalLoginEvents: 2,
-        activeEmergencies: 1
-      },
-      users: [
-        { id: 'usr-admin-01', name: 'ZeroMile Platform Admin', username: 'admin', phone: '+91 712 255 0000', role: 'admin', locality: 'Zero Mile, Nagpur', bloodGroup: 'O+', isRegisteredDonor: false, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() },
-        { id: 'usr-cit-01', name: this.state.session.citizen.name, username: this.state.session.citizen.phone || 'citizen', phone: this.state.session.citizen.phone || '+91 98220 00000', role: 'citizen', locality: this.state.session.citizen.locality, bloodGroup: this.state.session.citizen.bloodGroup, isRegisteredDonor: this.state.session.citizen.isRegisteredDonor, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() }
-      ],
-      bloodDonors: [...this.state.registeredDonors, ...(window.NAGPUR_DATA ? NAGPUR_DATA.donors : [])],
-      ambulanceRequests: [this.state.activeEmergency],
-      bloodRequests: this.state.bloodRequests,
-      loginLogs: [
-        { id: 'log-01', name: 'ZeroMile Platform Admin', userName: 'admin', role: 'admin', status: 'LOGIN_SUCCESS', ip: '127.0.0.1', timestamp: new Date().toISOString() }
-      ]
-    };
-    this.notify('ADMIN_DATA_UPDATED', this.state.adminData);
     return this.state.adminData;
   }
 
@@ -583,11 +669,131 @@ class MedConnectStore {
       emergencyContact: "+91 712 255 1001",
       lat: 21.1552,
       lng: 79.0865,
-      icuBedsAvailable: 4,
-      ventilatorsAvailable: 3,
-      traumaUnitsAvailable: 2,
+      icuBedsTotal: 24,
+      icuBedsAvailable: 6,
+      normalBedsTotal: 50,
+      normalBedsAvailable: 18,
+      ventilatorsTotal: 18,
+      ventilatorsAvailable: 5,
+      traumaUnitsTotal: 6,
+      traumaUnitsAvailable: 3,
       inboundQueue: []
     };
+  }
+
+  // --- Hospital Bed & Resource Inventory Management ---
+  async updateHospitalInventory(hospitalId, inventoryData) {
+    const hid = hospitalId || this.getCurrentHospitalId();
+
+    if (window.medApi) {
+      try {
+        const res = await window.medApi.updateHospitalInventory(hid, inventoryData);
+        if (res && res.success && res.hospital) {
+          this.state.hospitals[hid] = res.hospital;
+          this.saveState();
+          this.notify('HOSPITAL_DATA_UPDATED', res.hospital);
+          return res;
+        }
+      } catch (err) {
+        console.warn('Inventory API fallback locally:', err);
+      }
+    }
+
+    // Local fallback
+    const hosp = this.getHospitalById(hid);
+    if (hosp) {
+      Object.assign(hosp, inventoryData);
+      this.saveState();
+      this.notify('HOSPITAL_DATA_UPDATED', hosp);
+    }
+    return { success: true, hospital: hosp };
+  }
+
+  // --- Patient Discharge with Doctor Feedback & Seat Release (+1 Bed) ---
+  async dischargePatientWithFeedback(hospitalId, requestId, feedbackText, outcomeText = "Fully Recovered & Discharged") {
+    const hid = hospitalId || this.getCurrentHospitalId();
+
+    if (window.medApi) {
+      try {
+        const res = await window.medApi.dischargePatient(hid, requestId, feedbackText, outcomeText);
+        if (res && res.success) {
+          if (res.hospital) this.state.hospitals[hid] = res.hospital;
+          if (this.state.activeEmergency && this.state.activeEmergency.id === requestId) {
+            this.state.activeEmergency.status = 'DISCHARGED';
+            this.state.activeEmergency.doctorFeedback = feedbackText;
+            this.state.activeEmergency.outcome = outcomeText;
+            this.state.activeEmergency.dischargedAt = new Date().toISOString();
+          }
+          this.saveState();
+          this.notify('PATIENT_DISCHARGED', res);
+          this.notify('HOSPITAL_DATA_UPDATED', res.hospital);
+          this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+          return res;
+        }
+      } catch (err) {
+        console.warn('Discharge API fallback locally:', err);
+      }
+    }
+
+    // Local fallback
+    const hosp = this.getHospitalById(hid);
+    if (hosp) {
+      if (hosp.icuBedsAvailable < hosp.icuBedsTotal) hosp.icuBedsAvailable += 1;
+      else if (hosp.normalBedsAvailable < hosp.normalBedsTotal) hosp.normalBedsAvailable += 1;
+
+      if (hosp.inboundQueue) {
+        const qItem = hosp.inboundQueue.find(p => p.id === requestId);
+        if (qItem) {
+          qItem.status = 'DISCHARGED';
+          qItem.bedStatus = `✓ Treatment Completed • ${outcomeText}`;
+          qItem.doctorFeedback = feedbackText;
+        }
+      }
+    }
+
+    if (this.state.activeEmergency && this.state.activeEmergency.id === requestId) {
+      this.state.activeEmergency.status = 'DISCHARGED';
+      this.state.activeEmergency.doctorFeedback = feedbackText;
+      this.state.activeEmergency.outcome = outcomeText;
+      this.state.activeEmergency.dischargedAt = new Date().toISOString();
+    }
+
+    this.saveState();
+    this.notify('PATIENT_DISCHARGED', { hospital: hosp, emergency: this.state.activeEmergency, feedback: feedbackText, outcome: outcomeText });
+    this.notify('HOSPITAL_DATA_UPDATED', hosp);
+    this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    return { success: true, hospital: hosp };
+  }
+
+  // --- Mark Patient Admitted ---
+  async admitPatient(hospitalId, requestId) {
+    const hid = hospitalId || this.getCurrentHospitalId();
+
+    if (window.medApi) {
+      try {
+        const res = await window.medApi.admitPatient(hid, requestId);
+        if (res && res.success) {
+          if (res.hospital) this.state.hospitals[hid] = res.hospital;
+          this.saveState();
+          this.notify('HOSPITAL_DATA_UPDATED', res.hospital);
+          return res;
+        }
+      } catch (err) {
+        console.warn('Admit API fallback locally:', err);
+      }
+    }
+
+    const hosp = this.getHospitalById(hid);
+    if (hosp && hosp.inboundQueue) {
+      const qItem = hosp.inboundQueue.find(p => p.id === requestId);
+      if (qItem) {
+        qItem.status = 'ADMITTED';
+        qItem.bedStatus = '✓ Admitted & In Emergency Care';
+      }
+    }
+    this.saveState();
+    this.notify('HOSPITAL_DATA_UPDATED', hosp);
+    return { success: true, hospital: hosp };
   }
 
   // --- Smart Hospital Recommendation Engine ---
@@ -777,8 +983,11 @@ class MedConnectStore {
 
     this.state.activeEmergency = localEmg;
 
-    // Add to hospital inbound queue
+    // Add to hospital inbound queue & decrement bed
     if (this.state.hospitals[targetHosp.id]) {
+      if (this.state.hospitals[targetHosp.id].icuBedsAvailable > 0) {
+        this.state.hospitals[targetHosp.id].icuBedsAvailable -= 1;
+      }
       this.state.hospitals[targetHosp.id].inboundQueue.unshift({
         id: localEmg.id,
         patientName: localEmg.patient.name,
@@ -791,20 +1000,9 @@ class MedConnectStore {
         assignedDoctor: "Dr. S. Deshmukh",
         bedStatus: "ICU / Trauma Unit Reserved",
         isAlert15m: true,
-        accepted: false
+        accepted: false,
+        status: 'INCOMING'
       });
-      this.state.hospitals[targetHosp.id].activeAlert15m = {
-        id: localEmg.id,
-        patientName: localEmg.patient.name,
-        age: localEmg.patient.age,
-        condition: conditionName,
-        severity: localEmg.patient.severity,
-        ambulanceCode: localEmg.ambulance.code,
-        etaMinutes: 14,
-        etaSeconds: 892,
-        isTriggered: true,
-        isAccepted: false
-      };
     }
 
     this.saveState();
@@ -839,11 +1037,6 @@ class MedConnectStore {
     if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
     if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
     if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
-
-    if (hosp.activeAlert15m) {
-      hosp.activeAlert15m.isAccepted = true;
-      hosp.activeAlert15m.acceptedTimestamp = acceptedTimeStr;
-    }
 
     if (hosp.inboundQueue && Array.isArray(hosp.inboundQueue)) {
       hosp.inboundQueue.forEach(p => {

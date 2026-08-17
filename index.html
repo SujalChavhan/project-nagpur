@@ -595,6 +595,9 @@
         </div>
       </div>
 
+      <!-- 🎉 Real-Time Doctor Treatment Feedback & Discharge Banner -->
+      <div id="citizenDischargeBanner" style="display: none; margin-bottom: var(--space-6);"></div>
+
       <!-- 1. 🗺️ LARGE LIVE NAGPUR MAP -->
       <div class="card card-elevated" style="padding: 0; overflow: hidden; margin-bottom: var(--space-6); background: #ffffff;">
         <div style="padding: 14px 24px; background: #f8fafc; color: var(--navy-900); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-subtle);">
@@ -882,6 +885,121 @@
         </div>
 
       </div>
+
+      <!-- 🛏️ Hospital Live Bed & Seat Inventory Management Panel -->
+      <div class="card" style="margin-top: var(--space-6); padding: var(--space-6); background: #ffffff; border: 1px solid var(--border-medium); border-top: 4px solid var(--primary-600); box-shadow: var(--shadow-sm);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: var(--space-5);">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.4rem;">🛏️</span>
+              <h3 style="font-size: 1.3rem; color: var(--navy-900); margin: 0;">Live Bed & Seat Inventory Management</h3>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">
+              Adjust available beds, emergency seats, and ventilators. Updates reflect instantly across all citizen devices and public dispatch.
+            </p>
+          </div>
+          <button type="button" id="saveHospitalInventoryBtn" class="btn btn-primary btn-tactile" style="font-weight: 700;">
+            💾 Save & Broadcast Live Inventory
+          </button>
+        </div>
+
+        <form id="hospitalInventoryForm">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
+            <!-- ICU Beds -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+              <label style="font-size: 0.85rem; font-weight: 800; color: var(--navy-900); display: block; margin-bottom: 8px;">
+                🫀 ICU Beds
+              </label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Available:</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invIcuAvailable', -1)" style="padding: 2px 8px; font-weight: 800;">-</button>
+                  <input type="number" id="invIcuAvailable" class="form-control font-mono" style="width: 55px; text-align: center; font-weight: 800; padding: 4px;" min="0">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invIcuAvailable', 1)" style="padding: 2px 8px; font-weight: 800;">+</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Total Capacity:</span>
+                <input type="number" id="invIcuTotal" class="form-control font-mono" style="width: 55px; text-align: center; padding: 4px;" min="1">
+              </div>
+            </div>
+
+            <!-- General / Emergency Ward Beds & Seats -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+              <label style="font-size: 0.85rem; font-weight: 800; color: var(--navy-900); display: block; margin-bottom: 8px;">
+                🛏️ Ward Beds / Seats
+              </label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Available:</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invNormalAvailable', -1)" style="padding: 2px 8px; font-weight: 800;">-</button>
+                  <input type="number" id="invNormalAvailable" class="form-control font-mono" style="width: 55px; text-align: center; font-weight: 800; padding: 4px;" min="0">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invNormalAvailable', 1)" style="padding: 2px 8px; font-weight: 800;">+</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Total Capacity:</span>
+                <input type="number" id="invNormalTotal" class="form-control font-mono" style="width: 55px; text-align: center; padding: 4px;" min="1">
+              </div>
+            </div>
+
+            <!-- Ventilators -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+              <label style="font-size: 0.85rem; font-weight: 800; color: var(--navy-900); display: block; margin-bottom: 8px;">
+                💨 Ventilators
+              </label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Available:</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invVentAvailable', -1)" style="padding: 2px 8px; font-weight: 800;">-</button>
+                  <input type="number" id="invVentAvailable" class="form-control font-mono" style="width: 55px; text-align: center; font-weight: 800; padding: 4px;" min="0">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invVentAvailable', 1)" style="padding: 2px 8px; font-weight: 800;">+</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Total Capacity:</span>
+                <input type="number" id="invVentTotal" class="form-control font-mono" style="width: 55px; text-align: center; padding: 4px;" min="0">
+              </div>
+            </div>
+
+            <!-- Trauma Bays -->
+            <div style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+              <label style="font-size: 0.85rem; font-weight: 800; color: var(--navy-900); display: block; margin-bottom: 8px;">
+                🚨 Trauma Bays
+              </label>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Available:</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invTraumaAvailable', -1)" style="padding: 2px 8px; font-weight: 800;">-</button>
+                  <input type="number" id="invTraumaAvailable" class="form-control font-mono" style="width: 55px; text-align: center; font-weight: 800; padding: 4px;" min="0">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.app.adjustInventoryField('invTraumaAvailable', 1)" style="padding: 2px 8px; font-weight: 800;">+</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Total Capacity:</span>
+                <input type="number" id="invTraumaTotal" class="form-control font-mono" style="width: 55px; text-align: center; padding: 4px;" min="0">
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 0.8rem;">Emergency Team Readiness Status</label>
+              <select id="invTeamStatus" class="form-control">
+                <option value="Available (Team Alpha Ready)">Available (Team Alpha Ready)</option>
+                <option value="Available (Team Beta Standing By)">Available (Team Beta Standing By)</option>
+                <option value="Available (Team Gamma On Duty)">Available (Team Gamma On Duty)</option>
+                <option value="Delayed (Handling Mass Casualty)">Delayed (Handling Mass Casualty)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 0.8rem;">Blood Bank Reserve Status (%)</label>
+              <input type="number" id="invBloodReserve" class="form-control" min="0" max="100" value="94">
+            </div>
+          </div>
+        </form>
+      </div>
+
     </div>
   </main>
 
@@ -1551,6 +1669,66 @@
           <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
           <button type="submit" class="btn btn-critical btn-tactile">
             CONFIRM & SEND SMS DISPATCH
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       18. MODAL: PATIENT DISCHARGE & DOCTOR FEEDBACK
+       ========================================================================= -->
+  <div class="modal-backdrop" id="dischargePatientModal">
+    <div class="modal-dialog">
+      <div class="card-header" style="border-bottom: 1px solid var(--border-subtle);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.6rem;">🏥</span>
+          <div>
+            <h3 style="font-size: 1.25rem; color: var(--navy-900); margin: 0;">Complete Treatment & Discharge Patient</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">
+              Record treatment outcome, doctor feedback, and automatically release bed back into available capacity.
+            </p>
+          </div>
+        </div>
+        <button class="btn-icon btn-ghost" data-close-modal>✕</button>
+      </div>
+      <form id="dischargePatientForm">
+        <input type="hidden" id="dischargeRequestId">
+        <input type="hidden" id="dischargeHospitalId">
+        <div class="card-body">
+          <div style="padding: 14px 16px; background: #eff6ff; border-radius: 12px; border: 1px solid #bfdbfe; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+              <strong id="dischargePatientName" style="font-size: 1.1rem; color: #1e40af;">Patient Name</strong>
+              <span id="dischargeSeverityBadge" class="badge badge-critical">CRITICAL</span>
+            </div>
+            <div id="dischargeConditionText" style="font-size: 0.85rem; color: #3b82f6;">
+              Accident / Trauma • Ambulance: ZM-1024
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700; color: var(--navy-900);">Treatment Outcome</label>
+            <select id="dischargeOutcomeSelect" class="form-control">
+              <option value="Fully Recovered & Discharged" selected>✅ Fully Recovered & Discharged in Good Health</option>
+              <option value="Stabilized & Transferred to General Ward">🏥 Stabilized & Transferred to General Ward</option>
+              <option value="Emergency Treatment Completed">🩺 Emergency Treatment Successfully Completed</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-weight: 700; color: var(--navy-900);">
+              Doctor Feedback Note (Visible to Citizen & Public Network)
+            </label>
+            <textarea id="dischargeFeedbackText" class="form-control" rows="3" style="resize: vertical; font-size: 0.9rem;" required>This person is fine, received emergency treatment from our hospital, and is good now. Vitals have fully normalized.</textarea>
+            <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 4px;">
+              This feedback will appear immediately on the patient's phone and restore the hospital bed availability (+1).
+            </span>
+          </div>
+        </div>
+        <div class="card-footer" style="display: flex; align-items: center; justify-content: flex-end; gap: 12px;">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-success btn-tactile" style="font-weight: 800;">
+            ✓ Confirm Discharge & Release Bed (+1)
           </button>
         </div>
       </form>

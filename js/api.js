@@ -1,13 +1,15 @@
 /**
- * ZERO-MILE MEDCONNECT — API CLIENT & BACKEND CONNECTOR
- * Seamlessly interfaces with Node.js/Express Backend REST API (port 3000 or current origin)
- * Handles JWT token storage, automatic authentication headers, offline fallback, and reactive updates.
+ * ZERO-MILE MEDCONNECT — API CLIENT & REAL-TIME BACKEND CONNECTOR
+ * Seamlessly interfaces with Node.js/Express Backend REST API & Server-Sent Events (SSE) stream.
+ * Handles cross-device real-time sync, JWT token management, automatic retries, and offline caching.
  */
 
 class MedConnectAPI {
   constructor() {
     this.tokenKey = 'zero_mile_jwt_token';
     this.isBackendOnline = false;
+    this.eventSource = null;
+    this.eventListeners = [];
     this.determineBaseUrl();
   }
 
@@ -15,15 +17,15 @@ class MedConnectAPI {
     if (typeof window !== 'undefined' && window.location) {
       const loc = window.location;
       if (loc.protocol === 'http:' || loc.protocol === 'https:') {
-        // If served from Express backend directly (port 3000)
-        if (loc.port === '3000') {
+        // If served directly from Express on port 3000
+        if (loc.port === '3000' || loc.port === '') {
           this.baseUrl = '';
         } else {
-          // If served via Live Server (5500) or other port
+          // If served via Live Server (e.g. 5500)
           this.baseUrl = `${loc.protocol}//${loc.hostname}:3000`;
         }
       } else {
-        // file:/// protocol
+        // Local file system
         this.baseUrl = 'http://localhost:3000';
       }
     } else {
@@ -32,15 +34,21 @@ class MedConnectAPI {
   }
 
   getToken() {
-    return localStorage.getItem(this.tokenKey) || null;
+    try {
+      return localStorage.getItem(this.tokenKey) || null;
+    } catch (e) {
+      return null;
+    }
   }
 
   setToken(token) {
-    if (token) {
-      localStorage.setItem(this.tokenKey, token);
-    } else {
-      localStorage.removeItem(this.tokenKey);
-    }
+    try {
+      if (token) {
+        localStorage.setItem(this.tokenKey, token);
+      } else {
+        localStorage.removeItem(this.tokenKey);
+      }
+    } catch (e) {}
   }
 
   getHeaders() {
@@ -54,10 +62,8 @@ class MedConnectAPI {
     return headers;
   }
 
-  async request(endpoint, options = {}, timeoutMs = 3000) {
+  async request(endpoint, options = {}, timeoutMs = 4000) {
     const url = `${this.baseUrl}${endpoint}`;
-    
-    // Quick AbortController timeout to prevent hanging UI
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -82,14 +88,70 @@ class MedConnectAPI {
       return data;
     } catch (err) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
-        console.warn(`[API Timeout] Backend at ${this.baseUrl} did not respond within ${timeoutMs}ms. Using local fallback.`);
-      } else {
-        console.warn(`[API Notice] Backend request to ${endpoint} failed: ${err.message}. Using local storage fallback.`);
-      }
       this.isBackendOnline = false;
       throw err;
     }
+  }
+
+  // ==========================================
+  // REAL-TIME SERVER-SENT EVENTS (SSE) LISTENER
+  // ==========================================
+
+  startEventStream(callback) {
+    if (typeof EventSource === 'undefined') return;
+
+    if (this.eventSource) {
+      this.eventSource.close();
+    }
+
+    const sseUrl = `${this.baseUrl}/api/events`;
+
+    try {
+      this.eventSource = new EventSource(sseUrl);
+
+      this.eventSource.onopen = () => {
+        this.isBackendOnline = true;
+        console.log('[SSE] Real-time stream connected to backend:', sseUrl);
+      };
+
+      const eventTypes = [
+        'connected',
+        'EMERGENCY_CREATED',
+        'EMERGENCY_STATUS_UPDATED',
+        'ALERT_ACCEPTED',
+        'PATIENT_ADMITTED',
+        'PATIENT_DISCHARGED',
+        'HOSPITAL_INVENTORY_UPDATED',
+        'DONOR_REGISTERED',
+        'DONOR_CONTACTED',
+        'BLOOD_REQ_CREATED'
+      ];
+
+      eventTypes.forEach(evtType => {
+        this.eventSource.addEventListener(evtType, (e) => {
+          try {
+            const parsed = JSON.parse(e.data);
+            if (callback) callback(evtType, parsed.data || parsed);
+          } catch (err) {
+            console.warn('[SSE Parse Error]:', err);
+          }
+        });
+      });
+
+      this.eventSource.onerror = (err) => {
+        console.warn('[SSE Stream Disconnected - reconnecting in 3s...]');
+        this.isBackendOnline = false;
+        this.eventSource.close();
+        setTimeout(() => this.startEventStream(callback), 3000);
+      };
+    } catch (e) {
+      console.warn('[SSE Initialization failed]:', e);
+    }
+  }
+
+  // --- Full Server State Synchronization ---
+  async syncState() {
+    return await this.request('/api/sync/state', {}, 2500);
   }
 
   // --- Auth APIs ---
@@ -113,7 +175,7 @@ class MedConnectAPI {
 
   async getCurrentUser() {
     try {
-      return await this.request('/api/auth/me', {}, 1500);
+      return await this.request('/api/auth/me', {}, 2000);
     } catch (e) {
       return { success: false, authenticated: false, user: null };
     }
@@ -125,7 +187,7 @@ class MedConnectAPI {
 
   // --- Blood Donors ---
   async getDonors() {
-    return await this.request('/api/donors', {}, 1500);
+    return await this.request('/api/donors', {}, 2000);
   }
 
   async registerDonor(donorData) {
@@ -144,7 +206,7 @@ class MedConnectAPI {
 
   // --- Ambulance & Emergencies ---
   async getActiveEmergency() {
-    return await this.request('/api/ambulance/active', {}, 1500);
+    return await this.request('/api/ambulance/active', {}, 2000);
   }
 
   async requestAmbulance(emergencyData) {
@@ -161,9 +223,16 @@ class MedConnectAPI {
     });
   }
 
-  // --- Hospital Command Center ---
+  // --- Hospital Command Center & Bed Management ---
   async getHospitals() {
-    return await this.request('/api/hospitals', {}, 1500);
+    return await this.request('/api/hospitals', {}, 2000);
+  }
+
+  async updateHospitalInventory(hospitalId, inventoryData) {
+    return await this.request(`/api/hospitals/${hospitalId}/inventory`, {
+      method: 'POST',
+      body: JSON.stringify(inventoryData)
+    });
   }
 
   async acceptHospitalAlert(hospitalId) {
@@ -172,9 +241,23 @@ class MedConnectAPI {
     });
   }
 
+  async admitPatient(hospitalId, requestId) {
+    return await this.request(`/api/hospitals/${hospitalId}/admit-patient`, {
+      method: 'POST',
+      body: JSON.stringify({ requestId })
+    });
+  }
+
+  async dischargePatient(hospitalId, requestId, feedback, outcome) {
+    return await this.request(`/api/hospitals/${hospitalId}/discharge-patient`, {
+      method: 'POST',
+      body: JSON.stringify({ requestId, feedback, outcome })
+    });
+  }
+
   // --- Blood Requests ---
   async getBloodRequests() {
-    return await this.request('/api/blood-requests', {}, 1500);
+    return await this.request('/api/blood-requests', {}, 2000);
   }
 
   async createBloodRequest(data) {
@@ -184,13 +267,13 @@ class MedConnectAPI {
     });
   }
 
-  // --- Admin Owner Dashboard (Restricted) ---
+  // --- Admin Owner Dashboard ---
   async getAdminDashboard() {
-    return await this.request('/api/admin/dashboard', {}, 2000);
+    return await this.request('/api/admin/dashboard', {}, 2500);
   }
 
   async getAdminLogs() {
-    return await this.request('/api/admin/logs', {}, 2000);
+    return await this.request('/api/admin/logs', {}, 2500);
   }
 }
 
