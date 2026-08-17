@@ -262,46 +262,73 @@ class Database {
   }
 
   init() {
-    if (!fs.existsSync(DB_FILE)) {
-      this.data = getSeedData();
-      this.save();
-    } else {
+    let loadedData = null;
+    const rootDbFile = path.join(__dirname, '..', 'db.json');
+
+    // 1. Try loading from data/database.json, fallback to db.json
+    if (fs.existsSync(DB_FILE)) {
       try {
         const content = fs.readFileSync(DB_FILE, 'utf8');
-        this.data = JSON.parse(content);
-        // Ensure all collections exist
-        const seed = getSeedData();
-        for (const key of Object.keys(seed)) {
-          if (!this.data[key]) {
-            this.data[key] = seed[key];
-          }
+        loadedData = JSON.parse(content);
+      } catch (err) {
+        console.warn('Could not parse data/database.json, trying root db.json fallback...');
+      }
+    }
+
+    if (!loadedData && fs.existsSync(rootDbFile)) {
+      try {
+        const content = fs.readFileSync(rootDbFile, 'utf8');
+        loadedData = JSON.parse(content);
+      } catch (err) {
+        console.warn('Could not parse root db.json...');
+      }
+    }
+
+    if (loadedData) {
+      this.data = loadedData;
+      // Ensure all collections exist
+      const seed = getSeedData();
+      for (const key of Object.keys(seed)) {
+        if (!this.data[key]) {
+          this.data[key] = seed[key];
         }
-        // Ensure hospitals have all bed fields and valid non-zero baseline
-        if (this.data.hospitals) {
-          for (const hid of Object.keys(seed.hospitals)) {
-            if (!this.data.hospitals[hid]) {
-              this.data.hospitals[hid] = seed.hospitals[hid];
-            } else {
-              const h = this.data.hospitals[hid];
-              if (h.normalBedsTotal === undefined) h.normalBedsTotal = seed.hospitals[hid].normalBedsTotal;
-              if (h.normalBedsAvailable === undefined) h.normalBedsAvailable = seed.hospitals[hid].normalBedsAvailable;
-              if (h.icuBedsAvailable === 0 && (!h.inboundQueue || h.inboundQueue.length === 0)) {
-                h.icuBedsAvailable = seed.hospitals[hid].icuBedsAvailable;
-              }
+      }
+      // Ensure hospitals collection is complete
+      if (this.data.hospitals) {
+        for (const hid of Object.keys(seed.hospitals)) {
+          if (!this.data.hospitals[hid]) {
+            this.data.hospitals[hid] = seed.hospitals[hid];
+          } else {
+            const h = this.data.hospitals[hid];
+            if (h.normalBedsTotal === undefined) h.normalBedsTotal = seed.hospitals[hid].normalBedsTotal;
+            if (h.normalBedsAvailable === undefined) h.normalBedsAvailable = seed.hospitals[hid].normalBedsAvailable;
+            if (h.icuBedsAvailable === 0 && (!h.inboundQueue || h.inboundQueue.length === 0)) {
+              h.icuBedsAvailable = seed.hospitals[hid].icuBedsAvailable;
             }
           }
         }
-      } catch (err) {
-        console.error('Error reading database file, reinitializing:', err);
-        this.data = getSeedData();
-        this.save();
       }
+    } else {
+      console.log('Initializing fresh Zero-Mile database from seed...');
+      this.data = getSeedData();
     }
+
+    this.save();
   }
 
   save() {
     try {
-      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf8');
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
+      const dataStr = JSON.stringify(this.data, null, 2);
+      fs.writeFileSync(DB_FILE, dataStr, 'utf8');
+
+      // Mirror to root db.json for guaranteed portability
+      try {
+        const rootDbFile = path.join(__dirname, '..', 'db.json');
+        fs.writeFileSync(rootDbFile, dataStr, 'utf8');
+      } catch (e) {}
     } catch (err) {
       console.error('Error writing database file:', err);
     }
@@ -637,6 +664,46 @@ class Database {
 
     this.save();
     return hosp;
+  }
+
+  // Accept 15-minute Pre-Arrival Alert & Lock Resources
+  acceptHospitalAlert(hospitalId, requestId = null) {
+    const hosp = this.getHospitalById(hospitalId);
+    if (!hosp) return { success: false, message: 'Hospital not found' };
+
+    // Decrement available beds and lock resources
+    if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
+    if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
+    if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
+
+    // Update inbound queue
+    if (hosp.inboundQueue && Array.isArray(hosp.inboundQueue)) {
+      hosp.inboundQueue.forEach(p => {
+        if (!requestId || p.id === requestId) {
+          p.accepted = true;
+          p.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
+        }
+      });
+    }
+
+    let activeReq = null;
+    if (requestId) {
+      activeReq = this.getAmbulanceRequestById(requestId);
+    }
+    if (!activeReq) {
+      activeReq = this.data.ambulanceRequests.find(r => r.hospitalId === hospitalId && !r.is15mAlertAccepted);
+    }
+    if (activeReq) {
+      activeReq.is15mAlertAccepted = true;
+      activeReq.acceptedTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    this.save();
+    return {
+      success: true,
+      hospital: hosp,
+      activeEmergency: activeReq
+    };
   }
 
   // Discharge Patient with Doctor Feedback & Free up Bed/Seat (+1)

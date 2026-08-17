@@ -538,46 +538,27 @@ app.post('/api/hospitals/:id/inventory', (req, res) => {
 app.post('/api/hospitals/:id/accept-alert', (req, res) => {
   try {
     const { id } = req.params;
-    const hosp = db.getHospitalById(id);
+    const { requestId } = req.body || {};
 
-    if (!hosp) {
-      return res.status(404).json({ success: false, message: 'Hospital not found' });
+    const result = db.acceptHospitalAlert(id, requestId);
+    if (!result.success) {
+      return res.status(404).json(result);
     }
-
-    // Decrement available beds and lock resources
-    if (hosp.icuBedsAvailable > 0) hosp.icuBedsAvailable -= 1;
-    if (hosp.ventilatorsAvailable > 0) hosp.ventilatorsAvailable -= 1;
-    if (hosp.traumaUnitsAvailable > 0) hosp.traumaUnitsAvailable -= 1;
-
-    // Update active emergencies and inbound queue for this hospital
-    if (hosp.inboundQueue && Array.isArray(hosp.inboundQueue)) {
-      hosp.inboundQueue.forEach(p => {
-        p.accepted = true;
-        p.bedStatus = '✓ ICU Bed & Trauma Bay Locked';
-      });
-    }
-
-    const activeReq = db.data.ambulanceRequests.find(r => r.hospitalId === id && !r.is15mAlertAccepted);
-    if (activeReq) {
-      activeReq.is15mAlertAccepted = true;
-      activeReq.acceptedTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
-    db.save();
 
     broadcastEvent('ALERT_ACCEPTED', {
-      hospital: hosp,
-      activeEmergency: activeReq,
+      hospital: result.hospital,
+      activeEmergency: result.activeEmergency,
       hospitals: db.getHospitals()
     });
 
     return res.json({
       success: true,
-      message: `Emergency resources locked and confirmed at ${hosp.name}`,
-      hospital: hosp,
-      activeEmergency: activeReq
+      message: `Emergency resources locked and confirmed at ${result.hospital.name}`,
+      hospital: result.hospital,
+      activeEmergency: result.activeEmergency
     });
   } catch (error) {
+    console.error('Accept alert error:', error);
     return res.status(500).json({ success: false, message: 'Failed to accept alert' });
   }
 });
@@ -711,6 +692,33 @@ app.get('/api/admin/logs', requireAdmin, (req, res) => {
     return res.json({ success: true, logs });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to fetch system logs' });
+  }
+});
+
+app.get('/api/admin/donors', requireAdmin, (req, res) => {
+  try {
+    const donors = db.getBloodDonors(false);
+    return res.json({ success: true, count: donors.length, donors });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch admin donors' });
+  }
+});
+
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+  try {
+    const users = db.getAllUsers();
+    return res.json({ success: true, count: users.length, users });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch admin users' });
+  }
+});
+
+app.get('/api/admin/bookings', requireAdmin, (req, res) => {
+  try {
+    const requests = db.getAmbulanceRequests();
+    return res.json({ success: true, count: requests.length, requests });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to fetch ambulance bookings' });
   }
 });
 
