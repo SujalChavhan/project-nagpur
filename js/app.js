@@ -716,6 +716,28 @@ class MedConnectApp {
         `;
       }
     }
+
+    // Update live SOS status tracker if active
+    const tracker = document.getElementById('sosEmergencyStatusTracker');
+    if (tracker) {
+      if (emg && (emg.isSos || emg.severity === 'CRITICAL-SOS') && emg.status !== 'COMPLETED' && emg.status !== 'DISCHARGED') {
+        tracker.style.display = 'block';
+        const tEmgId = document.getElementById('sosTrackerEmgId');
+        if (tEmgId) tEmgId.innerText = emg.id || 'EMG-SOS-LIVE';
+        const tHosp = document.getElementById('sosTrackerHospName');
+        if (tHosp) tHosp.innerText = (emg.hospital && emg.hospital.name) || emg.hospitalName || "Nagpur Central Emergency Hospital";
+        const tAmb = document.getElementById('sosTrackerAmbCode');
+        if (tAmb) tAmb.innerText = `${(emg.ambulance && emg.ambulance.code) || emg.ambulanceCode || "ZM-SOS-1024"} • Speed: 75 km/h`;
+        const tEta = document.getElementById('sosTrackerEtaClock');
+        if (tEta) {
+          const etaMins = Math.floor((emg.etaSeconds || 0) / 60);
+          const etaSecs = (emg.etaSeconds || 0) % 60;
+          tEta.innerText = `${String(etaMins).padStart(2, '0')}:${String(etaSecs).padStart(2, '0')}`;
+        }
+      } else if (!emg || emg.status === 'COMPLETED' || emg.status === 'DISCHARGED') {
+        tracker.style.display = 'none';
+      }
+    }
   }
 
   // 7. Condition-Based Smart Hospital Recommendation Screen
@@ -1759,6 +1781,18 @@ class MedConnectApp {
     try {
       const emg = await window.medStore.triggerInstantSos(gpsCoords);
       this.closeAllModals();
+
+      // Populate and show Live SOS Emergency Status Tracker
+      const tracker = document.getElementById('sosEmergencyStatusTracker');
+      if (tracker) {
+        tracker.style.display = 'block';
+        const tEmgId = document.getElementById('sosTrackerEmgId');
+        if (tEmgId) tEmgId.innerText = emg.id || 'EMG-SOS-LIVE';
+        const tHosp = document.getElementById('sosTrackerHospName');
+        if (tHosp) tHosp.innerText = (emg.hospital && emg.hospital.name) || emg.hospitalName || "Nagpur Central Emergency Hospital";
+        const tAmb = document.getElementById('sosTrackerAmbCode');
+        if (tAmb) tAmb.innerText = `${(emg.ambulance && emg.ambulance.code) || emg.ambulanceCode || "ZM-SOS-1024"} • Speed: 75 km/h`;
+      }
 
       if (window.medAudio) window.medAudio.playEmergencyAlert();
 

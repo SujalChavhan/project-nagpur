@@ -12,7 +12,7 @@
       "locality": "Dharampeth, Nagpur",
       "isRegisteredDonor": false,
       "createdAt": "2026-08-17T21:18:20.522Z",
-      "lastLogin": "2026-08-17T21:53:16.704Z"
+      "lastLogin": "2026-08-17T22:33:44.979Z"
     },
     {
       "id": "usr-1786993648651-430",
@@ -121,7 +121,7 @@
       "hospitalId": "NCEH001",
       "locality": "Civil Lines, Nagpur",
       "createdAt": "2026-08-17T12:55:08.922Z",
-      "lastLogin": "2026-08-17T21:53:16.771Z"
+      "lastLogin": "2026-08-17T22:33:45.061Z"
     },
     {
       "id": "usr-hosp-02",
@@ -265,6 +265,50 @@
     }
   ],
   "ambulanceRequests": [
+    {
+      "id": "EMG-NAG-1416",
+      "userId": "citizen-sos",
+      "patientName": "FirstAid Test Citizen",
+      "age": 38,
+      "gender": "Unknown",
+      "condition": "🚨 GPS SOS Life-Threatening Emergency",
+      "severity": "CRITICAL-SOS",
+      "bloodGroup": "O+",
+      "locality": "Live GPS - Dharampeth [GPS: 21.1440, 79.0630]",
+      "hospitalId": "NCEH001",
+      "hospitalName": "Nagpur Central Emergency Hospital",
+      "hospitalLocality": "Civil Lines / Central Nagpur",
+      "hospitalContact": "+91 712 255 1001",
+      "ambulanceCode": "ZM-SOS-7095",
+      "ambulanceType": "Advanced Life Support (ALS) Trauma Unit",
+      "isSos": true,
+      "gpsLat": 21.144,
+      "gpsLng": 79.063,
+      "gpsAccuracy": 10,
+      "driverName": "Amit Sharma",
+      "driverPhone": "+91 98221 44550",
+      "driverRating": 4.9,
+      "paramedic": "Dr. Neha Verma (ER Specialist)",
+      "etaMinutes": 10,
+      "etaSeconds": 600,
+      "initialEtaSeconds": 600,
+      "status": "EN ROUTE",
+      "journeyStep": 4,
+      "is15mAlertTriggered": true,
+      "is15mAlertAccepted": false,
+      "acceptedTimestamp": null,
+      "doctorFeedback": null,
+      "dischargedAt": null,
+      "vitals": {
+        "heartRate": 128,
+        "bp": "160/105",
+        "spO2": 91,
+        "respRate": 28,
+        "ecgRhythm": "Sinus Tachycardia / Acute Stress",
+        "tempF": 98.6
+      },
+      "createdAt": "2026-08-17T22:33:29.188Z"
+    },
     {
       "id": "EMG-NAG-5102",
       "userId": "citizen-sos",
@@ -877,6 +921,28 @@
   ],
   "loginLogs": [
     {
+      "id": "log-1787006025064-926",
+      "userId": "usr-hosp-01",
+      "userName": "NCEH001",
+      "name": "Nagpur Central Emergency Hospital Staff",
+      "role": "hospital",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T22:33:45.064Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1787006024984-512",
+      "userId": "usr-1787001500522-561",
+      "userName": "+91 98221 00112",
+      "name": "+91 98221 00112",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T22:33:44.984Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
       "id": "log-1787003596773-173",
       "userId": "usr-hosp-01",
       "userName": "NCEH001",
@@ -1170,7 +1236,7 @@
       "locality": "Civil Lines / Central Nagpur",
       "emergencyContact": "+91 712 255 1001",
       "icuBedsTotal": 24,
-      "icuBedsAvailable": 2,
+      "icuBedsAvailable": 1,
       "normalBedsTotal": 60,
       "normalBedsAvailable": 25,
       "ventilatorsTotal": 20,
@@ -1180,6 +1246,24 @@
       "emergencyTeamStatus": "Available (Team Alpha Ready)",
       "bloodReservePercentage": 98,
       "inboundQueue": [
+        {
+          "id": "EMG-NAG-1416",
+          "patientName": "FirstAid Test Citizen",
+          "age": 38,
+          "condition": "🚨 GPS SOS Life-Threatening Emergency",
+          "severity": "CRITICAL-SOS",
+          "ambulanceCode": "ZM-SOS-7095",
+          "etaMinutes": 10,
+          "etaSeconds": 600,
+          "isSos": true,
+          "gpsLat": 21.144,
+          "gpsLng": 79.063,
+          "assignedDoctor": "Dr. S. Deshmukh",
+          "bedStatus": "ICU / Trauma Unit Reserved",
+          "isAlert15m": true,
+          "accepted": false,
+          "status": "INCOMING"
+        },
         {
           "id": "EMG-NAG-5102",
           "patientName": "Test Citizen (SOS Panic)",

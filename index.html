@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="css/design-system.css">
   <link rel="stylesheet" href="css/animations.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/first-aid-tracker.css">
   <link rel="stylesheet" href="css/raju.css">
 
   <!-- Leaflet Map CSS -->
@@ -630,6 +631,68 @@
         </div>
       </div>
 
+      <!-- =========================================================================
+           LIVE SOS EMERGENCY STATUS TRACKER (Non-Destructive)
+           Hidden by default, injected & rendered only after SOS confirmation
+           ========================================================================= -->
+      <div id="sosEmergencyStatusTracker" class="sos-tracker-banner">
+        <div class="sos-tracker-header">
+          <div class="sos-tracker-title">
+            <span class="live-dot-red"></span>
+            <span>🚨 Live Emergency Status Tracker</span>
+            <span class="badge badge-critical animate-critical-flash" style="font-size: 0.72rem; padding: 4px 8px;">PRIORITY CORRIDOR ACTIVE</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 0.8rem; color: #93c5fd;">Emergency ID: <strong id="sosTrackerEmgId" style="color: #ffffff;">EMG-SOS-LIVE</strong></span>
+            <button class="btn-icon btn-ghost" style="color: #ffffff; padding: 4px 8px;" onclick="document.getElementById('sosEmergencyStatusTracker').style.display='none'" title="Minimize Tracker">✕</button>
+          </div>
+        </div>
+
+        <div class="sos-tracker-stepper">
+          <!-- Step 1: SOS Sent -->
+          <div class="sos-step-card completed" id="sosStep1Card">
+            <div class="sos-step-icon-wrap">✓</div>
+            <div>
+              <div class="sos-step-label" style="color: #6ee7b7;">STEP 1 • COMPLETED</div>
+              <div class="sos-step-name">1. SOS Beacon Sent</div>
+              <div class="sos-step-desc">Live GPS Coordinates Transmitted</div>
+            </div>
+          </div>
+
+          <!-- Step 2: EOC Notified -->
+          <div class="sos-step-card completed" id="sosStep2Card">
+            <div class="sos-step-icon-wrap">✓</div>
+            <div>
+              <div class="sos-step-label" style="color: #6ee7b7;">STEP 2 • COMPLETED</div>
+              <div class="sos-step-name">2. Hospital EOC Notified</div>
+              <div class="sos-step-desc" id="sosTrackerHospName">Nagpur Central Emergency Hospital</div>
+            </div>
+          </div>
+
+          <!-- Step 3: Ambulance En Route -->
+          <div class="sos-step-card active" id="sosStep3Card">
+            <div class="sos-step-icon-wrap">🚑</div>
+            <div>
+              <div class="sos-step-label" style="color: #93c5fd;">STEP 3 • IN PROGRESS</div>
+              <div class="sos-step-name">3. Ambulance En Route</div>
+              <div class="sos-step-desc" id="sosTrackerAmbCode">ALS Unit ZM-SOS-1024 • Speed: 75 km/h</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sos-tracker-footer">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="font-size: 0.82rem; color: #cbd5e1;">
+              Estimated Arrival Time: <strong id="sosTrackerEtaClock" style="font-size: 1.25rem; color: #ef4444; font-family: monospace;">10:00</strong>
+            </div>
+            <span style="font-size: 0.78rem; color: #93c5fd;">• Green Corridor Active in Nagpur</span>
+          </div>
+          <button class="btn btn-sm btn-critical btn-tactile" onclick="window.app.switchView('ambulance')" style="font-weight: 800;">
+            📍 Open Full Live GPS Map $\rightarrow$
+          </button>
+        </div>
+      </div>
+
       <!-- Citizen Profile Header -->
       <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-6); border: 1px solid var(--border-subtle); background: #ffffff;">
         <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
@@ -734,6 +797,204 @@
           </table>
         </div>
       </div>
+
+      <!-- =========================================================================
+           ISOLATED FIRST-AID QUICK GUIDE CARDS (Non-Destructive)
+           ========================================================================= -->
+      <section class="fa-guide-section">
+        <div class="fa-section-header">
+          <div class="fa-section-title-wrap">
+            <div class="fa-section-icon">🩺</div>
+            <div>
+              <h3 class="fa-section-title">Emergency First-Aid Quick Guide</h3>
+              <p class="fa-section-subtitle">Actionable life-saving protocols while emergency services or ambulances are en route.</p>
+            </div>
+          </div>
+          <span class="fa-badge fa-badge-blue">Medical Protocol Certified</span>
+        </div>
+
+        <div class="fa-card-container">
+          <!-- Card 1: CPR -->
+          <div class="fa-card">
+            <div>
+              <div class="fa-card-top">
+                <div class="fa-card-icon-badge">
+                  <span class="fa-card-icon">🫀</span>
+                  <h4 class="fa-card-title">CPR (Cardiopulmonary Resuscitation)</h4>
+                </div>
+                <span class="fa-badge fa-badge-red">Critical</span>
+              </div>
+              <ul class="fa-card-steps">
+                <li class="fa-step-item">
+                  <span class="fa-step-num">1</span>
+                  <span>Check responsiveness & pulse. Call for emergency ambulance immediately.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">2</span>
+                  <span>Place heel of hand on center of chest. Interlock other hand on top.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">3</span>
+                  <span>Push hard & fast: <strong>100–120 compressions/min</strong> (approx. 2 inches deep).</span>
+                </li>
+              </ul>
+            </div>
+            <div class="fa-card-warning">
+              ⚠️ Give 30 compressions followed by 2 rescue breaths if trained, or continuous hands-only CPR.
+            </div>
+          </div>
+
+          <!-- Card 2: Severe Bleeding -->
+          <div class="fa-card">
+            <div>
+              <div class="fa-card-top">
+                <div class="fa-card-icon-badge">
+                  <span class="fa-card-icon">🩸</span>
+                  <h4 class="fa-card-title">Severe Bleeding & Trauma</h4>
+                </div>
+                <span class="fa-badge fa-badge-red">Critical</span>
+              </div>
+              <ul class="fa-card-steps">
+                <li class="fa-step-item">
+                  <span class="fa-step-num">1</span>
+                  <span>Apply firm, direct pressure on wound using a clean cloth or sterile gauze.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">2</span>
+                  <span>Maintain continuous pressure without lifting cloth to check bleeding.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">3</span>
+                  <span>Elevate the injured limb above heart level if no bone fracture is suspected.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="fa-card-warning">
+              ⚠️ If blood soaks through, place another cloth on top — do NOT remove the first layer.
+            </div>
+          </div>
+
+          <!-- Card 3: Choking -->
+          <div class="fa-card">
+            <div>
+              <div class="fa-card-top">
+                <div class="fa-card-icon-badge">
+                  <span class="fa-card-icon">🫁</span>
+                  <h4 class="fa-card-title">Choking (Heimlich Maneuver)</h4>
+                </div>
+                <span class="fa-badge fa-badge-amber">Urgent</span>
+              </div>
+              <ul class="fa-card-steps">
+                <li class="fa-step-item">
+                  <span class="fa-step-num">1</span>
+                  <span>Stand behind the person and wrap arms around their upper waist.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">2</span>
+                  <span>Make a fist with one hand and place thumb side just above their navel.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">3</span>
+                  <span>Grasp fist with other hand and give quick, upward abdominal thrusts.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="fa-card-warning">
+              ⚠️ If person becomes unconscious, gently lower to floor and begin chest compressions (CPR).
+            </div>
+          </div>
+
+          <!-- Card 4: Burn Injuries -->
+          <div class="fa-card">
+            <div>
+              <div class="fa-card-top">
+                <div class="fa-card-icon-badge">
+                  <span class="fa-card-icon">🔥</span>
+                  <h4 class="fa-card-title">Burn Injuries & Scalds</h4>
+                </div>
+                <span class="fa-badge fa-badge-amber">Urgent</span>
+              </div>
+              <ul class="fa-card-steps">
+                <li class="fa-step-item">
+                  <span class="fa-step-num">1</span>
+                  <span>Hold burned area under cool, running water for <strong>15–20 minutes</strong>.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">2</span>
+                  <span>Remove rings or tight clothing near the area before swelling starts.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">3</span>
+                  <span>Cover loosely with sterile, non-adhesive dressing or clean plastic wrap.</span>
+                </li>
+              </ul>
+            </div>
+            <div class="fa-card-warning">
+              ⚠️ NEVER apply ice, butter, toothpaste, or ointments to fresh thermal burns.
+            </div>
+          </div>
+
+          <!-- Card 5: Heart Attack -->
+          <div class="fa-card">
+            <div>
+              <div class="fa-card-top">
+                <div class="fa-card-icon-badge">
+                  <span class="fa-card-icon">❤️</span>
+                  <h4 class="fa-card-title">Heart Attack & Chest Pain</h4>
+                </div>
+                <span class="fa-badge fa-badge-red">Critical</span>
+              </div>
+              <ul class="fa-card-steps">
+                <li class="fa-step-item">
+                  <span class="fa-step-num">1</span>
+                  <span>Have person sit down, rest, and stay calm in a comfortable position.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">2</span>
+                  <span>Loosen tight collars, belts, or restrictive clothing around chest and neck.</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">3</span>
+                  <span>Ask if they take prescribed heart medication (like Sorbitrate / Nitroglycerin).</span>
+                </li>
+              </ul>
+            </div>
+            <div class="fa-card-warning">
+              ⚠️ Trigger 1-Click SOS immediately. Do NOT allow patient to walk or drive themselves.
+            </div>
+          </div>
+
+          <!-- Card 6: Stroke (F.A.S.T.) -->
+          <div class="fa-card">
+            <div>
+              <div class="fa-card-top">
+                <div class="fa-card-icon-badge">
+                  <span class="fa-card-icon">🧠</span>
+                  <h4 class="fa-card-title">Stroke Identification (F.A.S.T.)</h4>
+                </div>
+                <span class="fa-badge fa-badge-red">Critical</span>
+              </div>
+              <ul class="fa-card-steps">
+                <li class="fa-step-item">
+                  <span class="fa-step-num">F</span>
+                  <span><strong>Face:</strong> Ask to smile. Does one side of the face droop?</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">A</span>
+                  <span><strong>Arms:</strong> Ask to raise both arms. Does one arm drift downward?</span>
+                </li>
+                <li class="fa-step-item">
+                  <span class="fa-step-num">S</span>
+                  <span><strong>Speech:</strong> Ask to repeat a simple phrase. Is speech slurred?</span>
+                </li>
+              </ul>
+            </div>
+            <div class="fa-card-warning">
+              ⚠️ <strong>Time is Brain:</strong> Note the exact time symptoms started and dispatch ALS ambulance instantly.
+            </div>
+          </div>
+        </div>
+      </section>
 
     </div>
   </main>
