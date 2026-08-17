@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "push": "git add . && git commit -m \"Live update Zero-Mile MedConnect codebase\" && git push origin main",
+    "sync": "git add . && git commit -m \"Live sync update\" && git push origin main"
   },
   "keywords": [
     "emergency",
