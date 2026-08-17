@@ -255,6 +255,20 @@ class MedConnectAPI {
     });
   }
 
+  async rejectPatient(hospitalId, requestId, targetHospitalId, reason) {
+    return await this.request(`/api/hospitals/${hospitalId}/reject-patient`, {
+      method: 'POST',
+      body: JSON.stringify({ requestId, targetHospitalId, reason })
+    });
+  }
+
+  async updateHospitalSettings(hospitalId, settings) {
+    return await this.request(`/api/hospitals/${hospitalId}/settings`, {
+      method: 'POST',
+      body: JSON.stringify(settings)
+    });
+  }
+
   // --- Blood Requests ---
   async getBloodRequests() {
     return await this.request('/api/blood-requests', {}, 2000);

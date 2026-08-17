@@ -595,6 +595,64 @@ app.post('/api/hospitals/:id/discharge-patient', (req, res) => {
   }
 });
 
+// Reject & Divert Inbound Emergency to Alternative Hospital
+app.post('/api/hospitals/:id/reject-patient', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { requestId, targetHospitalId, reason } = req.body;
+
+    const result = db.rejectPatientAndDivert(id, targetHospitalId, requestId, reason);
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    // Broadcast divert event in real-time
+    broadcastEvent('PATIENT_DIVERTED', {
+      currentHospital: result.currentHospital,
+      targetHospital: result.targetHospital,
+      emergency: result.emergency,
+      reason: result.reason,
+      hospitals: db.getHospitals()
+    });
+
+    return res.json({
+      success: true,
+      message: `Inbound ambulance diverted to ${result.targetHospital.name}`,
+      ...result
+    });
+  } catch (error) {
+    console.error('Divert error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to divert patient' });
+  }
+});
+
+// Update Hospital Operational Settings (Surge status, Head Doctor, Contacts, Beds)
+app.post('/api/hospitals/:id/settings', (req, res) => {
+  try {
+    const { id } = req.params;
+    const settings = req.body;
+
+    const updated = db.updateHospitalSettings(id, settings);
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Hospital not found' });
+    }
+
+    broadcastEvent('HOSPITAL_SETTINGS_UPDATED', {
+      hospital: updated,
+      hospitals: db.getHospitals()
+    });
+
+    return res.json({
+      success: true,
+      message: `Operational settings updated for ${updated.name}`,
+      hospital: updated
+    });
+  } catch (error) {
+    console.error('Settings error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to update hospital settings' });
+  }
+});
+
 // ==========================================
 // 6. OWNER / ADMIN DASHBOARD (RESTRICTED TO OWNER ONLY)
 // ==========================================

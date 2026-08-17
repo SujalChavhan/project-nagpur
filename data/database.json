@@ -145,10 +145,10 @@
       "severity": "NORMAL",
       "bloodGroup": "O+",
       "locality": "Sitabuldi",
-      "hospitalId": "NCEH001",
-      "hospitalName": "Nagpur Central Emergency Hospital",
-      "hospitalLocality": "Civil Lines / Central Nagpur",
-      "hospitalContact": "+91 712 255 1001",
+      "hospitalId": "OCMC002",
+      "hospitalName": "Orange City Medical Center",
+      "hospitalLocality": "Khamla / Ring Road",
+      "hospitalContact": "+91 712 228 3200",
       "ambulanceCode": "ZM-4132",
       "ambulanceType": "Advanced Life Support (ALS) Ambulance",
       "driverName": "Amit Sharma",
@@ -158,10 +158,10 @@
       "etaMinutes": 14,
       "etaSeconds": 892,
       "initialEtaSeconds": 1080,
-      "status": "EN ROUTE",
+      "status": "DIVERTED",
       "journeyStep": 4,
       "is15mAlertTriggered": true,
-      "is15mAlertAccepted": true,
+      "is15mAlertAccepted": false,
       "acceptedTimestamp": "10:10:07 pm",
       "doctorFeedback": null,
       "dischargedAt": null,
@@ -173,7 +173,10 @@
         "ecgRhythm": "Sinus Tachycardia",
         "tempF": 98.4
       },
-      "createdAt": "2026-08-17T16:39:25.471Z"
+      "createdAt": "2026-08-17T16:39:25.471Z",
+      "destinationHospitalId": "OCMC002",
+      "divertedFrom": "Nagpur Central Emergency Hospital",
+      "divertReason": "Trauma ICU at Full Surge Capacity"
     },
     {
       "id": "EMG-NAG-9908",
@@ -275,8 +278,8 @@
       "code": "NCEH001",
       "locality": "Civil Lines / Central Nagpur",
       "emergencyContact": "+91 712 255 1001",
-      "icuBedsTotal": 30,
-      "icuBedsAvailable": 8,
+      "icuBedsTotal": 24,
+      "icuBedsAvailable": 9,
       "normalBedsTotal": 60,
       "normalBedsAvailable": 25,
       "ventilatorsTotal": 20,
@@ -286,21 +289,6 @@
       "emergencyTeamStatus": "Available (Team Alpha Ready)",
       "bloodReservePercentage": 98,
       "inboundQueue": [
-        {
-          "id": "EMG-NAG-5078",
-          "patientName": "yash rathod",
-          "age": 32,
-          "condition": "Other Emergency",
-          "severity": "NORMAL",
-          "ambulanceCode": "ZM-4132",
-          "etaMinutes": 14,
-          "etaSeconds": 892,
-          "assignedDoctor": "Dr. S. Deshmukh",
-          "bedStatus": "✓ ICU Bed & Trauma Bay Locked",
-          "isAlert15m": true,
-          "accepted": true,
-          "status": "INCOMING"
-        },
         {
           "id": "EMG-NAG-9908",
           "patientName": "Test Judge Phone Patient",
@@ -318,7 +306,9 @@
           "doctorFeedback": "This person is fine, received treatment from our hospital, and is good now. Vitals fully stabilized.",
           "dischargedAt": "2026-08-17T12:55:58.664Z"
         }
-      ]
+      ],
+      "surgeStatus": "Normal Operations (Accepting All)",
+      "headDoctor": "Dr. S. Deshmukh (Trauma Chief)"
     },
     "OCMC002": {
       "id": "OCMC002",
@@ -336,7 +326,23 @@
       "traumaUnitsAvailable": 2,
       "emergencyTeamStatus": "Available (Team Beta Standing By)",
       "bloodReservePercentage": 88,
-      "inboundQueue": []
+      "inboundQueue": [
+        {
+          "id": "EMG-NAG-5078",
+          "patientName": "yash rathod",
+          "age": 32,
+          "condition": "Other Emergency",
+          "severity": "NORMAL",
+          "ambulanceCode": "ZM-4132",
+          "etaMinutes": 14,
+          "etaSeconds": 892,
+          "assignedDoctor": "Dr. On Duty",
+          "bedStatus": "Diverted from Nagpur Central Emergency Hospital • Trauma ICU at Full Surge Capacity",
+          "isAlert15m": true,
+          "accepted": false,
+          "status": "INCOMING"
+        }
+      ]
     },
     "CIEC003": {
       "id": "CIEC003",

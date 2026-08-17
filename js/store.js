@@ -300,6 +300,28 @@ class MedConnectStore {
       this.notify('PATIENT_DISCHARGED', payload);
       this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
       this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    } else if (evtType === 'PATIENT_DIVERTED') {
+      if (payload.hospitals) {
+        this.state.hospitals = payload.hospitals;
+      } else {
+        if (payload.currentHospital) this.state.hospitals[payload.currentHospital.id] = payload.currentHospital;
+        if (payload.targetHospital) this.state.hospitals[payload.targetHospital.id] = payload.targetHospital;
+      }
+      if (payload.emergency) {
+        this.formatAndSetActiveEmergency(payload.emergency);
+      }
+      this.saveState();
+      this.notify('PATIENT_DIVERTED', payload);
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+      this.notify('EMERGENCY_UPDATED', this.state.activeEmergency);
+    } else if (evtType === 'HOSPITAL_SETTINGS_UPDATED') {
+      if (payload.hospitals) {
+        this.state.hospitals = payload.hospitals;
+      } else if (payload.hospital) {
+        this.state.hospitals[payload.hospital.id] = payload.hospital;
+      }
+      this.saveState();
+      this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
     } else if (evtType === 'DONOR_REGISTERED') {
       if (payload.donor) {
         this.state.registeredDonors.unshift(payload.donor);
@@ -1153,6 +1175,73 @@ class MedConnectStore {
     this.saveState();
     this.notify('BLOOD_REQUEST_CREATED', newReq);
     return newReq;
+  }
+
+  // Reject & Divert Inbound Emergency to another Nagpur Hospital
+  async rejectAndDivertPatient(hospitalId, requestId, targetHospitalId, reason) {
+    if (window.medApi) {
+      try {
+        const res = await window.medApi.rejectPatient(hospitalId, requestId, targetHospitalId, reason);
+        if (res && res.success) {
+          if (res.currentHospital) this.state.hospitals[hospitalId] = res.currentHospital;
+          if (res.targetHospital) this.state.hospitals[targetHospitalId] = res.targetHospital;
+          if (res.emergency) this.formatAndSetActiveEmergency(res.emergency);
+          this.saveState();
+          this.notify('PATIENT_DIVERTED', res);
+          this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+          return res;
+        }
+      } catch (err) {
+        console.warn('Backend divert note: offline handling');
+      }
+    }
+
+    // Local fallback
+    const curHosp = this.getHospitalById(hospitalId);
+    const targetHosp = this.getHospitalById(targetHospitalId);
+    if (curHosp && curHosp.inboundQueue) {
+      const idx = curHosp.inboundQueue.findIndex(p => p.id === requestId);
+      if (idx !== -1) {
+        const removed = curHosp.inboundQueue.splice(idx, 1)[0];
+        if (targetHosp) {
+          if (!targetHosp.inboundQueue) targetHosp.inboundQueue = [];
+          targetHosp.inboundQueue.push({
+            ...removed,
+            bedStatus: `Diverted from ${curHosp.name} • ${reason}`,
+            accepted: false
+          });
+        }
+      }
+    }
+    this.saveState();
+    this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+    return { success: true };
+  }
+
+  // Save Hospital Operational Settings (Surge mode, Head Doctor, Contacts, Beds)
+  async saveHospitalSettings(hospitalId, settings) {
+    if (window.medApi) {
+      try {
+        const res = await window.medApi.updateHospitalSettings(hospitalId, settings);
+        if (res && res.success && res.hospital) {
+          this.state.hospitals[hospitalId] = res.hospital;
+          this.saveState();
+          this.notify('HOSPITAL_SETTINGS_UPDATED', res.hospital);
+          this.notify('HOSPITAL_DATA_UPDATED', this.getCurrentHospitalData());
+          return res;
+        }
+      } catch (err) {
+        console.warn('Backend settings note: offline handling');
+      }
+    }
+
+    const hosp = this.getHospitalById(hospitalId);
+    if (hosp) {
+      Object.assign(hosp, settings);
+      this.saveState();
+      this.notify('HOSPITAL_DATA_UPDATED', hosp);
+    }
+    return { success: true, hospital: hosp };
   }
 
   getActiveEmergency() {

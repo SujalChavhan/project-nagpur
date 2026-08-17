@@ -717,6 +717,92 @@ class Database {
     return { success: true, hospital: hosp, emergency: req };
   }
 
+  // Reject & Divert Patient to Alternative Hospital
+  rejectPatientAndDivert(currentHospitalId, targetHospitalId, requestId, reason = 'Surge Capacity Reached') {
+    const curHosp = this.getHospitalById(currentHospitalId);
+    const targetHosp = this.getHospitalById(targetHospitalId);
+    const req = this.getAmbulanceRequestById(requestId);
+
+    if (!curHosp || !targetHosp || !req) {
+      return { success: false, message: 'Hospital or emergency record not found' };
+    }
+
+    // Remove from current hospital queue
+    if (curHosp.inboundQueue) {
+      const idx = curHosp.inboundQueue.findIndex(p => p.id === requestId);
+      if (idx !== -1) {
+        const removed = curHosp.inboundQueue.splice(idx, 1)[0];
+        // If it was accepted and reserved bed, restore bed to current hospital
+        if (removed.accepted && curHosp.icuBedsAvailable < curHosp.icuBedsTotal) {
+          curHosp.icuBedsAvailable += 1;
+        }
+      }
+    }
+
+    // Re-assign emergency to target hospital
+    req.hospitalId = targetHospitalId;
+    req.destinationHospitalId = targetHospitalId;
+    req.hospitalName = targetHosp.name;
+    req.hospitalLocality = targetHosp.locality;
+    req.hospitalContact = targetHosp.emergencyContact;
+    req.status = 'DIVERTED';
+    req.divertedFrom = curHosp.name;
+    req.divertReason = reason;
+    req.is15mAlertAccepted = false;
+
+    // Add to target hospital inboundQueue
+    if (!targetHosp.inboundQueue) targetHosp.inboundQueue = [];
+    targetHosp.inboundQueue.push({
+      id: req.id,
+      patientName: req.patientName,
+      age: req.age,
+      condition: req.condition,
+      severity: req.severity,
+      ambulanceCode: req.ambulanceCode,
+      etaMinutes: req.etaMinutes || 12,
+      etaSeconds: req.etaSeconds || 720,
+      assignedDoctor: "Dr. On Duty",
+      bedStatus: `Diverted from ${curHosp.name} • ${reason}`,
+      isAlert15m: true,
+      accepted: false,
+      status: 'INCOMING'
+    });
+
+    this.save();
+    return {
+      success: true,
+      currentHospital: curHosp,
+      targetHospital: targetHosp,
+      emergency: req,
+      reason
+    };
+  }
+
+  // Update Hospital Operational Settings & Surge Mode
+  updateHospitalSettings(hospitalId, settings = {}) {
+    const hosp = this.getHospitalById(hospitalId);
+    if (!hosp) return null;
+
+    if (settings.surgeStatus !== undefined) hosp.surgeStatus = settings.surgeStatus;
+    if (settings.headDoctor !== undefined) hosp.headDoctor = settings.headDoctor;
+    if (settings.emergencyContact !== undefined) hosp.emergencyContact = settings.emergencyContact;
+    if (settings.emergencyTeamStatus !== undefined) hosp.emergencyTeamStatus = settings.emergencyTeamStatus;
+    if (settings.bloodReservePercentage !== undefined) hosp.bloodReservePercentage = parseInt(settings.bloodReservePercentage) || hosp.bloodReservePercentage;
+
+    // Also update beds if provided
+    if (settings.icuBedsAvailable !== undefined) hosp.icuBedsAvailable = Math.max(0, parseInt(settings.icuBedsAvailable));
+    if (settings.icuBedsTotal !== undefined) hosp.icuBedsTotal = Math.max(1, parseInt(settings.icuBedsTotal));
+    if (settings.normalBedsAvailable !== undefined) hosp.normalBedsAvailable = Math.max(0, parseInt(settings.normalBedsAvailable));
+    if (settings.normalBedsTotal !== undefined) hosp.normalBedsTotal = Math.max(1, parseInt(settings.normalBedsTotal));
+    if (settings.ventilatorsAvailable !== undefined) hosp.ventilatorsAvailable = Math.max(0, parseInt(settings.ventilatorsAvailable));
+    if (settings.ventilatorsTotal !== undefined) hosp.ventilatorsTotal = Math.max(0, parseInt(settings.ventilatorsTotal));
+    if (settings.traumaUnitsAvailable !== undefined) hosp.traumaUnitsAvailable = Math.max(0, parseInt(settings.traumaUnitsAvailable));
+    if (settings.traumaUnitsTotal !== undefined) hosp.traumaUnitsTotal = Math.max(0, parseInt(settings.traumaUnitsTotal));
+
+    this.save();
+    return hosp;
+  }
+
   // Full state synchronization payload
   getFullSyncState() {
     return {

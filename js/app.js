@@ -227,6 +227,7 @@ class MedConnectApp {
   renderAll() {
     this.renderNavSession();
     this.renderHeroStats();
+    this.renderLandingHospitalCapacityTable();
     this.renderCitizenDashboard();
     this.renderAmbulanceTracking();
     this.renderHospitalAlertBanner();
@@ -860,6 +861,9 @@ class MedConnectApp {
     const invVentTot = document.getElementById('invVentTotal');
     const invTraumaAvail = document.getElementById('invTraumaAvailable');
     const invTraumaTot = document.getElementById('invTraumaTotal');
+    const invSurge = document.getElementById('invSurgeStatus');
+    const invDoctor = document.getElementById('invHeadDoctor');
+    const invPhone = document.getElementById('invEmergencyPhone');
     const invTeam = document.getElementById('invTeamStatus');
     const invBlood = document.getElementById('invBloodReserve');
 
@@ -871,6 +875,9 @@ class MedConnectApp {
     if (invVentTot) invVentTot.value = hosp.ventilatorsTotal || 18;
     if (invTraumaAvail) invTraumaAvail.value = hosp.traumaUnitsAvailable;
     if (invTraumaTot) invTraumaTot.value = hosp.traumaUnitsTotal || 6;
+    if (invSurge && hosp.surgeStatus) invSurge.value = hosp.surgeStatus;
+    if (invDoctor && hosp.headDoctor) invDoctor.value = hosp.headDoctor;
+    if (invPhone && hosp.emergencyContact) invPhone.value = hosp.emergencyContact;
     if (invTeam && hosp.emergencyTeamStatus) invTeam.value = hosp.emergencyTeamStatus;
     if (invBlood) invBlood.value = hosp.bloodReservePercentage || 94;
 
@@ -939,6 +946,11 @@ class MedConnectApp {
                       Accept Alert
                     </button>
                   `))}
+                  ${!isDischarged ? `
+                    <button class="btn btn-sm btn-ghost" style="width: 100%; color: #dc2626; border: 1px solid #fecdd3; font-size: 0.72rem; padding: 2px 6px; margin-top: 2px;" onclick="window.app.openDivertModal('${p.id}', '${p.patientName}', '${p.severity}', '${p.condition}', '${p.ambulanceCode}')">
+                      ❌ Divert Ambulance
+                    </button>
+                  ` : ''}
                 </div>
               </div>
             </div>
@@ -1447,6 +1459,225 @@ class MedConnectApp {
         if (window.medAudio) window.medAudio.playSuccessChime();
       });
     }
+
+    // 10. Portal Dedicated Login Forms (Citizen, Hospital, Admin)
+    const portalCitizenForm = document.getElementById('portalCitizenLoginForm');
+    if (portalCitizenForm) {
+      portalCitizenForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('portalCitizenName').value.trim();
+        const phone = document.getElementById('portalCitizenPhone').value.trim();
+        const bloodGroup = document.getElementById('portalCitizenBlood').value;
+        const locality = document.getElementById('portalCitizenLocality').value;
+        window.medStore.loginAsCitizen({ name, phone, bloodGroup, locality });
+        this.showToast(`Welcome ${name}! Citizen portal active.`, 'success');
+        if (window.medAudio) window.medAudio.playSuccessChime();
+        this.switchView('citizen');
+      });
+    }
+
+    const portalHospitalForm = document.getElementById('portalHospitalLoginForm');
+    if (portalHospitalForm) {
+      portalHospitalForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const hospId = document.getElementById('portalHospitalSelect').value;
+        const pass = document.getElementById('portalHospitalPassword').value;
+        window.medStore.loginAsHospital(hospId, pass);
+        const hosp = window.medStore.getCurrentHospitalData();
+        this.showToast(`🏥 Logged into ${hosp ? hosp.name : hospId} Command Center`, 'success');
+        if (window.medAudio) window.medAudio.playSuccessChime();
+        this.switchView('hospital');
+      });
+    }
+
+    const portalAdminForm = document.getElementById('portalAdminLoginForm');
+    if (portalAdminForm) {
+      portalAdminForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('portalAdminUsername').value.trim();
+        const pass = document.getElementById('portalAdminPassword').value.trim();
+        const res = await window.medStore.loginAsAdmin(username, pass);
+        if (res && res.success) {
+          this.showToast('🔐 Master Admin Control Center Unlocked!', 'success');
+          if (window.medAudio) window.medAudio.playSuccessChime();
+          this.switchView('admin');
+        } else {
+          this.showToast('Invalid Admin Credentials', 'critical');
+        }
+      });
+    }
+
+    // 11. Divert Patient Form
+    const divertForm = document.getElementById('divertPatientForm');
+    if (divertForm) {
+      divertForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const requestId = document.getElementById('divertRequestId').value;
+        const curHospId = document.getElementById('divertCurrentHospitalId').value || window.medStore.getCurrentHospitalId();
+        const targetHospId = document.getElementById('divertTargetHospitalSelect').value;
+        const reason = document.getElementById('divertReasonSelect').value;
+
+        await window.medStore.rejectAndDivertPatient(curHospId, requestId, targetHospId, reason);
+        this.closeAllModals();
+        const targetHosp = window.medStore.getHospitalById(targetHospId);
+        this.showToast(`Ambulance diverted & re-routed to ${targetHosp ? targetHosp.name : targetHospId}!`, 'urgent');
+        if (window.medAudio) window.medAudio.playSuccessChime();
+      });
+    }
+  }
+
+  // --- Role & Tab Navigation Helpers ---
+  openLoginTab(role) {
+    this.switchView('login');
+    this.switchAuthTab(role);
+  }
+
+  switchAuthTab(role) {
+    ['citizen', 'hospital', 'admin'].forEach(r => {
+      const btn = document.getElementById(`authTabBtn-${r}`);
+      const pane = document.getElementById(`authPane-${r}`);
+      if (btn) {
+        if (r === role) {
+          btn.classList.add('active');
+          btn.style.borderBottom = '3px solid #2563eb';
+          btn.style.color = '#2563eb';
+        } else {
+          btn.classList.remove('active');
+          btn.style.borderBottom = 'none';
+          btn.style.color = 'var(--text-muted)';
+        }
+      }
+      if (pane) {
+        pane.style.display = r === role ? 'block' : 'none';
+      }
+    });
+  }
+
+  async quickDemoLogin(role, targetId) {
+    if (role === 'citizen') {
+      const name = targetId || 'Yash Rathod';
+      window.medStore.loginAsCitizen({
+        name,
+        phone: '+91 98221 00112',
+        locality: 'Sitabuldi',
+        bloodGroup: 'O+'
+      });
+      this.showToast(`Welcome ${name}! Logged in to Citizen Portal.`, 'success');
+      if (window.medAudio) window.medAudio.playSuccessChime();
+      this.switchView('citizen');
+    } else if (role === 'hospital') {
+      const hospId = targetId || 'NCEH001';
+      window.medStore.loginAsHospital(hospId, 'hospital123');
+      const hosp = window.medStore.getCurrentHospitalData();
+      this.showToast(`Logged into ${hosp ? hosp.name : hospId} Emergency EOC!`, 'primary');
+      if (window.medAudio) window.medAudio.playSuccessChime();
+      this.switchView('hospital');
+    } else if (role === 'admin') {
+      window.medStore.loginAsAdmin('admin', 'admin123');
+      this.showToast('Authenticated as Platform Master Admin', 'success');
+      if (window.medAudio) window.medAudio.playSuccessChime();
+      this.switchView('admin');
+    }
+  }
+
+  renderLandingHospitalCapacityTable() {
+    const rowsContainer = document.getElementById('landingHospitalCapacityRows');
+    if (!rowsContainer) return;
+    const hospitals = window.medStore.state.hospitals;
+    if (!hospitals) return;
+
+    rowsContainer.innerHTML = Object.values(hospitals).map(h => {
+      const isLowIcu = h.icuBedsAvailable <= 2;
+      const surgeMode = h.surgeStatus || "Normal Operations (Accepting All)";
+      const isSurge = surgeMode.includes("Surge");
+      const isDivert = surgeMode.includes("Divert") || surgeMode.includes("Bypass");
+      const surgeBadgeClass = isDivert ? 'badge-critical' : (isSurge ? 'badge-urgent' : 'badge-success');
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight: 800; color: var(--navy-900); font-size: 0.95rem;">${h.name}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">${h.code} • ${h.locality}, Nagpur</div>
+          </td>
+          <td>
+            <span class="badge ${isLowIcu ? 'badge-critical' : 'badge-success'}" style="font-weight: 700;">
+              ${h.icuBedsAvailable} / ${h.icuBedsTotal || 24} Open
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-neutral" style="font-weight: 600;">
+              ${h.normalBedsAvailable !== undefined ? h.normalBedsAvailable : 18} / ${h.normalBedsTotal || 50}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-primary" style="font-weight: 600;">
+              ${h.ventilatorsAvailable} Ready
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-neutral" style="font-weight: 600;">
+              ${h.traumaUnitsAvailable} Bays
+            </span>
+          </td>
+          <td>
+            <span class="badge ${surgeBadgeClass}" style="font-weight: 700;">
+              ${surgeMode.split('(')[0].trim()}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-dark btn-tactile" onclick="window.app.quickDemoLogin('hospital', '${h.id}')" style="font-size: 0.75rem; padding: 4px 10px;">
+              🏥 Staff EOC ➔
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  switchHospitalTab(tabName) {
+    ['inbound', 'settings', 'analytics'].forEach(t => {
+      const btn = document.getElementById(`hospTabBtn-${t}`);
+      const pane = document.getElementById(`hospTabContent-${t}`);
+      if (btn) {
+        if (t === tabName) {
+          btn.className = 'btn btn-primary active';
+        } else {
+          btn.className = 'btn btn-secondary';
+        }
+      }
+      if (pane) {
+        pane.style.display = t === tabName ? 'block' : 'none';
+      }
+    });
+  }
+
+  openDivertModal(requestId, patientName, severity, condition, ambulanceCode) {
+    const curHosp = window.medStore.getCurrentHospitalData();
+    const reqIdInput = document.getElementById('divertRequestId');
+    const curHospInput = document.getElementById('divertCurrentHospitalId');
+    const nameEl = document.getElementById('divertPatientName');
+    const badgeEl = document.getElementById('divertSeverityBadge');
+    const condEl = document.getElementById('divertConditionText');
+    const targetSelect = document.getElementById('divertTargetHospitalSelect');
+
+    if (reqIdInput) reqIdInput.value = requestId;
+    if (curHospInput) curHospInput.value = curHosp.id;
+    if (nameEl) nameEl.innerText = patientName || 'Emergency Patient';
+    if (badgeEl) {
+      badgeEl.innerText = severity || 'CRITICAL';
+      badgeEl.className = `badge ${severity === 'CRITICAL' ? 'badge-critical' : 'badge-urgent'}`;
+    }
+    if (condEl) condEl.innerText = `${condition || 'Trauma'} • Ambulance: ${ambulanceCode || 'ZM-1024'}`;
+
+    if (targetSelect) {
+      const allHosps = window.medStore.state.hospitals;
+      targetSelect.innerHTML = Object.values(allHosps)
+        .filter(h => h.id !== curHosp.id)
+        .map(h => `<option value="${h.id}">${h.name} (${h.locality}) — ${h.icuBedsAvailable} ICU Beds Open</option>`)
+        .join('');
+    }
+
+    this.openModal('divertPatientModal');
   }
 
   // Helper: Increase / Decrease bed & resource numbers
@@ -1458,7 +1689,7 @@ class MedConnectApp {
     }
   }
 
-  // Save Bed & Resource Inventory to Server
+  // Save Bed & Resource Inventory + Operational Settings to Server
   async saveHospitalInventory() {
     const hospId = window.medStore.getCurrentHospitalId();
     const invData = {
@@ -1470,13 +1701,16 @@ class MedConnectApp {
       ventilatorsTotal: parseInt(document.getElementById('invVentTotal').value) || 18,
       traumaUnitsAvailable: parseInt(document.getElementById('invTraumaAvailable').value) || 0,
       traumaUnitsTotal: parseInt(document.getElementById('invTraumaTotal').value) || 6,
-      emergencyTeamStatus: document.getElementById('invTeamStatus').value,
+      surgeStatus: document.getElementById('invSurgeStatus') ? document.getElementById('invSurgeStatus').value : 'Normal Operations (Accepting All)',
+      headDoctor: document.getElementById('invHeadDoctor') ? document.getElementById('invHeadDoctor').value : 'Dr. S. Deshmukh (Trauma Chief)',
+      emergencyContact: document.getElementById('invEmergencyPhone') ? document.getElementById('invEmergencyPhone').value : '+91 712 255 1001',
+      emergencyTeamStatus: document.getElementById('invTeamStatus') ? document.getElementById('invTeamStatus').value : 'Available (Team Alpha Ready)',
       bloodReservePercentage: parseInt(document.getElementById('invBloodReserve').value) || 94
     };
 
-    const res = await window.medStore.updateHospitalInventory(hospId, invData);
+    const res = await window.medStore.saveHospitalSettings(hospId, invData);
     if (res && res.success) {
-      this.showToast(`💾 Live Bed Inventory Updated & Broadcasted for ${window.medStore.getCurrentHospitalData().name}!`, "success");
+      this.showToast(`💾 Live Settings & Bed Inventory Broadcasted for ${window.medStore.getCurrentHospitalData().name}!`, "success");
       if (window.medAudio) window.medAudio.playSuccessChime();
     }
   }
