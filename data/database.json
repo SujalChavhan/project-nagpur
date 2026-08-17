@@ -1,6 +1,20 @@
 {
   "users": [
     {
+      "id": "usr-1786990385716-47",
+      "name": "Audit Citizen",
+      "username": "+91 99999 23231",
+      "email": "",
+      "phone": "+91 99999 23231",
+      "passwordHash": "$2a$10$xrsQIfRh6elXhUnmPq9GR.uRKPYIJeRYCgvACR8c3vmoktvzEVQqm",
+      "role": "citizen",
+      "bloodGroup": "O+",
+      "locality": "Ramdaspeth",
+      "isRegisteredDonor": false,
+      "createdAt": "2026-08-17T18:13:05.716Z",
+      "lastLogin": "2026-08-17T18:13:05.735Z"
+    },
+    {
       "id": "usr-1786989777884-621",
       "name": "465876987098",
       "username": "465876987098",
@@ -38,7 +52,7 @@
       "role": "admin",
       "locality": "Zero Mile, Nagpur",
       "createdAt": "2026-08-17T12:55:08.922Z",
-      "lastLogin": null
+      "lastLogin": "2026-08-17T18:13:05.840Z"
     },
     {
       "id": "usr-hosp-01",
@@ -179,6 +193,50 @@
     }
   ],
   "ambulanceRequests": [
+    {
+      "id": "EMG-NAG-1420",
+      "userId": "usr-1786990385716-47",
+      "patientName": "Hackathon Audit Patient",
+      "age": 45,
+      "gender": "Unknown",
+      "condition": "Accident / Trauma",
+      "severity": "CRITICAL",
+      "bloodGroup": "O+",
+      "locality": "Dharampeth",
+      "hospitalId": "NCEH001",
+      "hospitalName": "Nagpur Central Emergency Hospital",
+      "hospitalLocality": "Civil Lines / Central Nagpur",
+      "hospitalContact": "+91 712 255 1001",
+      "ambulanceCode": "ZM-3874",
+      "ambulanceType": "Advanced Life Support (ALS) Ambulance",
+      "driverName": "Amit Sharma",
+      "driverPhone": "+91 98221 44550",
+      "driverRating": 4.9,
+      "paramedic": "Dr. Neha Verma (ER Specialist)",
+      "etaMinutes": 14,
+      "etaSeconds": 892,
+      "initialEtaSeconds": 1080,
+      "status": "DISCHARGED",
+      "journeyStep": 4,
+      "is15mAlertTriggered": true,
+      "is15mAlertAccepted": true,
+      "acceptedTimestamp": "11:43:05 pm",
+      "doctorFeedback": "Full recovery verified.",
+      "dischargedAt": "2026-08-17T18:13:05.762Z",
+      "vitals": {
+        "heartRate": 114,
+        "bp": "142/92",
+        "spO2": 93,
+        "respRate": 24,
+        "ecgRhythm": "Sinus Tachycardia",
+        "tempF": 98.4
+      },
+      "createdAt": "2026-08-17T18:13:05.746Z",
+      "dischargeStatus": "TREATED",
+      "outcome": "Discharged",
+      "dischargedByHospitalId": "NCEH001",
+      "dischargedByHospitalName": "Nagpur Central Emergency Hospital"
+    },
     {
       "id": "EMG-NAG-8640",
       "userId": null,
@@ -483,6 +541,39 @@
   ],
   "loginLogs": [
     {
+      "id": "log-1786990385841-983",
+      "userId": "usr-admin-01",
+      "userName": "admin",
+      "name": "ZeroMile Platform Admin",
+      "role": "admin",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T18:13:05.841Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1786990385738-746",
+      "userId": "usr-1786990385716-47",
+      "userName": "+91 99999 23231",
+      "name": "Audit Citizen",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T18:13:05.738Z",
+      "status": "LOGIN_SUCCESS"
+    },
+    {
+      "id": "log-1786990385719-890",
+      "userId": "usr-1786990385716-47",
+      "userName": "+91 99999 23231",
+      "name": "Audit Citizen",
+      "role": "citizen",
+      "ip": "127.0.0.1",
+      "userAgent": "node",
+      "timestamp": "2026-08-17T18:13:05.719Z",
+      "status": "REGISTER_SUCCESS"
+    },
+    {
       "id": "log-1786990003725-720",
       "userId": "usr-hosp-01",
       "userName": "NCEH001",
@@ -589,7 +680,7 @@
       "locality": "Civil Lines / Central Nagpur",
       "emergencyContact": "+91 712 255 1001",
       "icuBedsTotal": 24,
-      "icuBedsAvailable": 7,
+      "icuBedsAvailable": 6,
       "normalBedsTotal": 60,
       "normalBedsAvailable": 25,
       "ventilatorsTotal": 20,
@@ -599,6 +690,23 @@
       "emergencyTeamStatus": "Available (Team Alpha Ready)",
       "bloodReservePercentage": 98,
       "inboundQueue": [
+        {
+          "id": "EMG-NAG-1420",
+          "patientName": "Hackathon Audit Patient",
+          "age": 45,
+          "condition": "Accident / Trauma",
+          "severity": "CRITICAL",
+          "ambulanceCode": "ZM-3874",
+          "etaMinutes": 14,
+          "etaSeconds": 892,
+          "assignedDoctor": "Dr. S. Deshmukh",
+          "bedStatus": "✓ Treatment Completed • Discharged",
+          "isAlert15m": true,
+          "accepted": true,
+          "status": "DISCHARGED",
+          "doctorFeedback": "Full recovery verified.",
+          "dischargedAt": "2026-08-17T18:13:05.762Z"
+        },
         {
           "id": "EMG-NAG-3005",
           "patientName": "kaustub",
@@ -669,7 +777,7 @@
         }
       ],
       "surgeStatus": "Normal Operations (Accepting All)",
-      "headDoctor": "Dr. S. Deshmukh (Trauma Chief)"
+      "headDoctor": "Dr. Anand Deshmukh"
     },
     "OCMC002": {
       "id": "OCMC002",
